@@ -1,6 +1,140 @@
 # Using the Mock API Server in VS Code (without Claude Code)
 
-This guide covers three ways to use the mock API generator in VS Code. All three work without installing Claude Code.
+This guide covers how to use the mock API generator in VS Code across different setups — from no AI at all, to GitHub Copilot, to a dedicated Claude API key. **No Claude Code installation is required for any of these.**
+
+### Which option is right for you?
+
+| Your setup | Best option |
+|-----------|-------------|
+| No AI tools, just VS Code | [Option A — Standalone](#option-a--standalone-no-ai-at-all) — run the Python script directly |
+| GitHub Copilot (free with GitHub Education or paid) | [Option B — GitHub Copilot](#option-b--github-copilot-no-api-key-needed) — context loads automatically via `.github/copilot-instructions.md` |
+| Cursor, Continue.dev, or another AI editor | [Option B — Other AI editors](#other-ai-editors-cursor-continuedev) — similar file-reference approach |
+
+> **Note on `SKILL.md` and `@skill`:** `SKILL.md` is a Claude Code-specific concept — Claude Code reads it automatically when you open this project. In VS Code there is no `@skill` command. The equivalent for GitHub Copilot is `.github/copilot-instructions.md`, which Copilot reads automatically for every conversation in the repo — no manual loading needed. See [Using this skill with GitHub Copilot](#using-this-skill-with-github-copilot-githubcopilot-instructionsmd) for setup.
+
+---
+
+## Creating a new mock server — example prompts
+
+Before diving into setup options, here are the kinds of prompts you can give to **any AI assistant** (GitHub Copilot, Claude.ai, Cline, Cursor, etc.) to work with this toolkit. The AI tells you what command to run — you paste it in the VS Code terminal. The examples use Jamf Pro and Zoom because their OpenAPI specs are publicly available.
+
+**Important:** Always start your AI conversation by loading the context file:
+- GitHub Copilot: type `#file:SKILL.md` then your prompt
+- Cursor: type `@SKILL.md` then your prompt  
+- Claude.ai web / ChatGPT: paste the contents of `SKILL.md` first
+- Cline / Continue.dev: start with "Read `SKILL.md` first, then..."
+
+This tells the AI what the generator can do so its responses are accurate.
+
+### Getting a spec file
+
+Most enterprise APIs publish an OpenAPI spec. Download it first:
+
+```bash
+# Jamf Pro (download from Jamf Developer Portal or your Jamf instance)
+# https://developer.jamf.com/jamf-pro/docs — download the YAML spec
+
+# Zoom (public spec on GitHub)
+curl -L https://raw.githubusercontent.com/zoom/zoom-api-spec/main/openapi.yaml \
+  -o zoom-openapi.yaml
+```
+
+If you cannot find a public spec, paste the API documentation into Claude and ask it to write one for you (see prompt examples below).
+
+---
+
+### Jamf Pro — prompt examples
+
+**Generate a mock for the most useful Jamf endpoints:**
+> "Generate a mock server from `jamf-openapi.yaml` on port 9096. Focus on these endpoints: `GET:/api/v1/computers-inventory`, `GET:/api/v1/computers-inventory/{id}`, `GET:/api/v1/mobile-devices`, `GET:/api/v1/policies`, `GET:/api/v1/categories`. Use ingress path `/jamf`."
+
+**Ask Claude to write the spec if you don't have one:**
+> "I don't have an OpenAPI spec for Jamf Pro. Using the Jamf Pro API documentation at https://developer.jamf.com/jamf-pro/reference, write an OpenAPI 3.0 spec for these 5 endpoints and save it as `jamf-openapi.json`: computers inventory list, single computer detail, mobile devices list, policies list, categories list. Then generate a mock server from it on port 9096."
+
+**Generate with realistic device data:**
+> "Generate a mock for `jamf-openapi.json` on port 9096. The computers inventory endpoint should return 5 computers with realistic macOS device names like `MacBook-Pro-Alice`, serial numbers, IP addresses, and macOS versions. Add it to `mock-data-config.yaml`."
+
+**Add a Helm chart after the mock already exists:**
+> "The Jamf mock in `jamf-pro-api/` was hand-edited. Add a Helm chart and Dockerfile for it on port 9090 with ingress path `/jamf` — do not touch `mock_server.py`."
+
+**Example expected output — Jamf computers inventory (`GET /api/v1/computers-inventory`):**
+```json
+{
+  "totalCount": 5,
+  "results": [
+    {
+      "id": "1",
+      "udid": "550e8400-e29b-41d4-a716-446655440001",
+      "general": {
+        "name": "MacBook-Pro-Alice",
+        "serialNumber": "C02XG2JHJGH6",
+        "ipAddress": "192.168.1.101",
+        "lastContactTime": "2024-03-15T10:30:00Z",
+        "osVersion": "14.3.1"
+      },
+      "hardware": {
+        "model": "MacBook Pro (16-inch, 2023)",
+        "processorType": "Apple M3 Pro"
+      }
+    }
+  ]
+}
+```
+
+---
+
+### Zoom — prompt examples
+
+**Generate a mock for core Zoom meeting endpoints:**
+> "Generate a mock server from `zoom-openapi.yaml` on port 9097. Mock these endpoints: `GET:/users`, `GET:/users/{userId}`, `GET:/users/{userId}/meetings`, `GET:/meetings/{meetingId}`, `GET:/meetings/{meetingId}/participants`. Use ingress path `/zoom`."
+
+**Ask Claude to write the spec from documentation:**
+> "Write an OpenAPI 3.0 spec for the Zoom Meetings API covering: list users, get user detail, list meetings for a user, get meeting detail, list meeting participants. Auth is OAuth2 bearer token. Save as `zoom-openapi.json` then generate a mock on port 9097."
+
+**Generate with realistic meeting data:**
+> "Generate a mock for `zoom-openapi.json` on port 9097. The users endpoint should return 4 users with Zoom-style email addresses and display names. The meetings endpoint should return 3 meetings with realistic topics like `Weekly Standup`, `Product Review`, `Customer Call`. Use `mock-data-config.yaml` to configure this."
+
+**Generate with Kubernetes artifacts:**
+> "Generate a mock from `zoom-openapi.yaml` on port 9090 with a Helm chart. Use `/zoom` as the ingress path. The external URL for listing users should be `http://mock.local/zoom/users`."
+
+**Example expected output — Zoom users (`GET /users`):**
+```json
+{
+  "page_count": 1,
+  "page_number": 1,
+  "page_size": 30,
+  "total_records": 4,
+  "users": [
+    {
+      "id": "KdYKjnIMT7KM4fCOmh-TrA",
+      "first_name": "Alice",
+      "last_name": "Johnson",
+      "email": "alice.johnson@company.com",
+      "type": 2,
+      "status": "active",
+      "dept": "Engineering",
+      "created_at": "2022-01-15T09:00:00Z",
+      "timezone": "America/New_York"
+    }
+  ]
+}
+```
+
+---
+
+### General prompts that work for any API
+
+**From a spec file:**
+> "Generate a mock server from `[spec-file]` on port [port]. Show me what endpoints are available and ask which ones I want to include."
+
+**From API documentation (no spec file):**
+> "Here is the API documentation for [API name]: [paste or link]. Write an OpenAPI 3.0 spec for the top 5 most useful endpoints and generate a mock server from it on port [port]."
+
+**Smoke test after generating:**
+> "Generate a mock from `[spec-file]` on port [port] and immediately run smoke tests to verify all endpoints return 200."
+
+**Generate multiple mocks for a cluster:**
+> "Generate mocks for Jamf (`jamf-openapi.json`) on port 9090 and Zoom (`zoom-openapi.yaml`) on port 9090, both with Helm charts — use `/jamf` and `/zoom` as ingress paths. All K8s services use port 9090."
 
 ---
 
@@ -18,8 +152,6 @@ pip install flask pyyaml
 ### 2. Generate a mock server
 
 ```bash
-cd mock-api-server
-
 # From a local spec file
 python generate_mock_server.py path/to/openapi.json --port 9090
 
@@ -77,82 +209,123 @@ python mock_portal.py
 
 ---
 
-## Option B — AI-assisted via Cline extension (VS Code + Claude API key)
+## Option B — GitHub Copilot (no API key needed)
 
-[Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) is a VS Code extension that gives Claude full file-system and terminal access inside your editor, similar to Claude Code.
+GitHub Copilot is the most common AI tool in VS Code — available free with GitHub Education or as a paid GitHub subscription. No separate API key required.
 
-### 1. Install Cline
+### 1. Open Copilot Chat
 
-- Open VS Code Extensions (`Ctrl+Shift+X`)
-- Search for **Cline** and install it
+Click the Copilot icon in the VS Code sidebar, or press `Ctrl+Alt+I`.
 
-### 2. Configure your Anthropic API key
+### 2. Load SKILL.md as context
 
-- Open Cline settings (click the Cline icon in the sidebar → gear icon)
-- Set **API Provider** to `Anthropic`
-- Paste your API key from [console.anthropic.com](https://console.anthropic.com)
-- Set **Model** to `claude-sonnet-4-6` (recommended) or `claude-opus-4-7`
+Copilot does not auto-read project files. Use the `#file:` reference to attach `SKILL.md` to your message:
 
-### 3. Point Cline at this project
+```
+#file:SKILL.md Generate a mock server from jamf-openapi.json on port 9096 with ingress path /jamf.
+Tell me what command to run.
+```
 
-Open this repo folder in VS Code. Cline automatically reads files in your workspace. The `SKILL.md` file in this folder documents exactly what the generator can do — Cline will use it as context.
+Copilot reads the file contents and uses it to understand what the generator supports.
 
-### 4. Use the same natural-language prompts as Claude Code
+### 3. Run the command Copilot gives you
 
-In the Cline chat panel, use prompts like:
+Copilot will output the exact `python generate_mock_server.py ...` command. Paste it in the VS Code integrated terminal (`Ctrl+\``) and run it.
 
-> "Read `SKILL.md` in this folder, then generate a mock server from `openapi.json` on port 9090 with a Helm chart for ingress path `/myapi`."
+### 4. Example prompts for Copilot Chat
 
-> "The mock in `microsoft-defender-for-endpoint-api/` was hand-edited. Add a Helm chart and Dockerfile for it on port 9090 with ingress path `/defender` — do not touch `mock_server.py`."
+```
+#file:SKILL.md What endpoints does the Meraki mock expose and how do I start it?
+```
 
-> "Start all six mock servers in the background and then open the portal."
+```
+#file:SKILL.md I want to add a Helm chart to the existing Defender mock without
+touching mock_server.py. Give me the exact command.
+```
 
-> "Run a smoke test against the Meraki mock on port 9090."
+```
+#file:SKILL.md The Zoom API mock returned a 404. Here is the error: [paste].
+What is wrong and how do I fix it?
+```
 
-Cline can read `SKILL.md`, run terminal commands, edit files, and report results — the same workflow as Claude Code.
+```
+#file:SKILL.md Write an OpenAPI 3.0 spec for these 5 Jamf Pro endpoints:
+computers inventory list, single computer detail, mobile devices list,
+policies list, categories list. I will save it as jamf-openapi.json.
+```
 
-### 5. Differences from Claude Code
+### 5. Copilot model options
 
-| | Claude Code | Cline |
-|--|-------------|-------|
-| Install | `npm install -g @anthropic-ai/claude-code` | VS Code marketplace |
-| Invocation | Terminal CLI (`claude`) | VS Code sidebar panel |
-| Skill loading | Reads `SKILL.md` automatically | Must be mentioned in the first prompt |
-| Context | Full project context by default | Ask it to read specific files if needed |
-| Cost | Subscription or API key | Anthropic API key (pay-per-token) |
+GitHub Copilot Chat lets you switch models (GPT-4o, Claude Sonnet, Gemini, etc.) from the model picker in the chat panel. Any of them work — attach `#file:SKILL.md` the same way regardless of which model is selected.
 
 ---
 
-## Option C — Claude.ai web + VS Code terminal (copy-paste workflow)
+### Other AI editors (Cursor, Continue.dev)
 
-No extensions or API keys required beyond a Claude.ai account.
+The same approach works in other AI-enabled editors — the file reference syntax differs:
 
-### 1. Open two windows side by side
+| Editor / Tool | How to load SKILL.md context |
+|--------------|------------------------------|
+| **GitHub Copilot** | Automatic via `.github/copilot-instructions.md` (see below), or `#file:SKILL.md` per message |
+| **Cursor** | `@SKILL.md` at the start of your message |
+| **Continue.dev** | `@file SKILL.md` at the start of your message |
 
-- Left: VS Code with this project open
-- Right: [claude.ai](https://claude.ai) in a browser
+None of these tools have a built-in `@skill` command — you reference the file manually for the first message in a session. After that, the AI keeps it in context for the rest of the conversation.
 
-### 2. Give Claude the skill context
+---
 
-In Claude.ai, paste the contents of `SKILL.md` at the start of a new conversation:
+## Using this skill with GitHub Copilot — `.github/copilot-instructions.md`
 
-> "Here is a skill description for a mock API server generator. I want to use this to generate mocks. [paste contents of SKILL.md]"
+GitHub Copilot supports a special file that it reads **automatically** for every chat conversation in the repo — no `#file:` needed. This is the VS Code equivalent of how Claude Code reads `SKILL.md`.
 
-### 3. Ask Claude to write the command for you
+### How it works
 
-> "I have an OpenAPI spec at `./my-api/openapi.json`. What command should I run to generate a mock server on port 9090 with a Helm chart for ingress path `/myapi`?"
+Create `.github/copilot-instructions.md` in the repo. Copilot loads it silently as background context for every Copilot Chat message in this workspace. You do not need to reference it — it is always active.
 
-Claude will produce the exact `python generate_mock_server.py ...` command.
+This repo already has one set up. It tells Copilot:
+- What `generate_mock_server.py` does and what flags it accepts
+- That it should always give you the exact terminal command to run
+- The port and ingress conventions for this project
 
-### 4. Paste and run in the VS Code terminal
+### Setup (already done in this repo)
 
-Copy the command, paste it in the VS Code integrated terminal (`Ctrl+\``), and run it.
+```
+mock-api-server/
+└── .github/
+    └── copilot-instructions.md   ← Copilot reads this automatically
+```
 
-### 5. Ask Claude to help interpret output or debug
+### What Copilot can do with this context
 
-If a mock fails to start, paste the error into Claude.ai:
+Once the instructions file is present, Copilot Chat answers mock-server questions correctly without any preamble:
 
-> "The mock server gave this error: [paste]. How do I fix it?"
+```
+Generate a mock from jamf-openapi.json on port 9096 with ingress path /jamf
+```
+
+```
+Add a Helm chart to the Defender mock on port 9090 — do not touch mock_server.py
+```
+
+```
+The Meraki mock returns 404. Error: [paste]. What is wrong?
+```
+
+```
+Write an OpenAPI spec for these 5 Jamf endpoints and tell me how to generate a mock from it
+```
+
+Copilot gives you the exact command. Paste it in the VS Code terminal and run it.
+
+### Limitations vs Claude Code
+
+| | Claude Code | GitHub Copilot + instructions |
+|--|-------------|-------------------------------|
+| Context loading | Automatic (reads `SKILL.md`) | Automatic (reads `.github/copilot-instructions.md`) |
+| Runs terminal commands | Yes | No — tells you what to run |
+| Edits files | Yes | No — advises only |
+| API key | Claude subscription | GitHub subscription |
+| Model choice | Claude only | GPT-4o, Claude Sonnet, Gemini, and others |
 
 ---
 
