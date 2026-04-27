@@ -1,0 +1,781 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Crestron XiO Cloud API",
+    "version": "2.0.0",
+    "description": "Crestron XiO Cloud Service API for device management, status monitoring, and provisioning. Provides IP address, MAC address, firmware, and network configuration data for Crestron devices enrolled in XiO Cloud."
+  },
+  "servers": [
+    {
+      "url": "https://api.crestron.io"
+    }
+  ],
+  "security": [
+    {
+      "XiOSubscriptionKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "XiOSubscriptionKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "XiO-subscription-key",
+        "description": "API subscription key obtained from Crestron XiO Cloud portal. Requires SW-XIOC-API license."
+      }
+    },
+    "schemas": {
+      "DeviceNetworkStatus": {
+        "type": "object",
+        "description": "Full network and device status for a single Crestron device.",
+        "properties": {
+          "device-cid": {
+            "type": "string",
+            "description": "Unique Crestron device identifier (CID).",
+            "example": "1234567890abcdef"
+          },
+          "device-name": {
+            "type": "string",
+            "description": "Friendly name assigned in XiO Cloud.",
+            "example": "Conference Room A - TSW-1070"
+          },
+          "device-model": {
+            "type": "string",
+            "description": "Crestron device model number.",
+            "example": "TSW-1070"
+          },
+          "device-category": {
+            "type": "string",
+            "description": "Device category.",
+            "example": "Touch Screen"
+          },
+          "device-status": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline",
+              "unknown"
+            ],
+            "description": "Current online/offline status.",
+            "example": "online"
+          },
+          "serial-number": {
+            "type": "string",
+            "description": "Device serial number.",
+            "example": "2107ABC0001234"
+          },
+          "firmware-version": {
+            "type": "string",
+            "description": "Currently installed firmware version.",
+            "example": "2.004.0084"
+          },
+          "firmware-date": {
+            "type": "string",
+            "description": "Build date of the installed firmware.",
+            "example": "2024-03-15"
+          },
+          "status-host-name": {
+            "type": "string",
+            "description": "Device hostname reported at last check-in.",
+            "example": "TSW-1070-CONF-A"
+          },
+          "status-domain-name": {
+            "type": "string",
+            "description": "DNS domain name reported at last check-in.",
+            "example": "corp.example.com"
+          },
+          "nic-1-ip-address": {
+            "type": "string",
+            "description": "IPv4 address of primary network interface.",
+            "example": "10.10.1.101"
+          },
+          "nic-1-subnet-mask": {
+            "type": "string",
+            "description": "Subnet mask of primary network interface.",
+            "example": "255.255.255.0"
+          },
+          "nic-1-def-router": {
+            "type": "string",
+            "description": "Default gateway of primary network interface.",
+            "example": "10.10.1.1"
+          },
+          "nic-1-mac-address": {
+            "type": "string",
+            "description": "MAC address of primary network interface (Crestron dot-separated format).",
+            "example": "00.11.22.aa.bb.01"
+          },
+          "nic-1-dns-servers": {
+            "type": "string",
+            "description": "Comma-separated DNS server IPs for primary NIC.",
+            "example": "10.10.1.10,10.10.1.11"
+          },
+          "nic-2-ip-address": {
+            "type": "string",
+            "description": "IPv4 address of secondary network interface (if present).",
+            "example": ""
+          },
+          "nic-2-mac-address": {
+            "type": "string",
+            "description": "MAC address of secondary network interface (if present).",
+            "example": ""
+          },
+          "last-online-datetime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC timestamp of the most recent device check-in.",
+            "example": "2024-06-01T14:22:00Z"
+          },
+          "room-id": {
+            "type": "string",
+            "description": "XiO Cloud room identifier the device is assigned to.",
+            "example": "room-abc123"
+          },
+          "room-name": {
+            "type": "string",
+            "description": "Name of the room the device is assigned to.",
+            "example": "Conference Room A"
+          }
+        }
+      },
+      "DeviceSummary": {
+        "type": "object",
+        "description": "Summary information for a device in a list response.",
+        "properties": {
+          "device-cid": {
+            "type": "string",
+            "example": "1234567890abcdef"
+          },
+          "device-name": {
+            "type": "string",
+            "example": "Conference Room A - TSW-1070"
+          },
+          "device-model": {
+            "type": "string",
+            "example": "TSW-1070"
+          },
+          "device-category": {
+            "type": "string",
+            "example": "Touch Screen"
+          },
+          "device-status": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline",
+              "unknown"
+            ],
+            "example": "online"
+          },
+          "nic-1-ip-address": {
+            "type": "string",
+            "description": "IPv4 address of primary NIC.",
+            "example": "10.10.1.101"
+          },
+          "nic-1-mac-address": {
+            "type": "string",
+            "description": "MAC address of primary NIC.",
+            "example": "00.11.22.aa.bb.01"
+          },
+          "serial-number": {
+            "type": "string",
+            "example": "2107ABC0001234"
+          },
+          "firmware-version": {
+            "type": "string",
+            "example": "2.004.0084"
+          },
+          "room-id": {
+            "type": "string",
+            "example": "room-abc123"
+          },
+          "room-name": {
+            "type": "string",
+            "example": "Conference Room A"
+          },
+          "last-online-datetime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-01T14:22:00Z"
+          }
+        }
+      },
+      "PaginatedDeviceStatusResponse": {
+        "type": "object",
+        "properties": {
+          "total-count": {
+            "type": "integer",
+            "description": "Total number of devices matching the query.",
+            "example": 42
+          },
+          "page-number": {
+            "type": "integer",
+            "example": 1
+          },
+          "page-size": {
+            "type": "integer",
+            "example": 10
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceNetworkStatus"
+            }
+          }
+        }
+      },
+      "GroupDeviceListResponse": {
+        "type": "object",
+        "properties": {
+          "group-id": {
+            "type": "string",
+            "example": "grp-001"
+          },
+          "group-name": {
+            "type": "string",
+            "example": "Floor 3 AV Devices"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceSummary"
+            }
+          }
+        }
+      },
+      "BatchDeviceStatusRequest": {
+        "type": "object",
+        "description": "Request body for batch device status lookup (max 20 device CIDs).",
+        "properties": {
+          "device-cids": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "example": "1234567890abcdef"
+            },
+            "example": [
+              "1234567890abcdef",
+              "abcdef1234567890"
+            ]
+          }
+        },
+        "required": [
+          "device-cids"
+        ]
+      },
+      "BatchDeviceStatusResponse": {
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceNetworkStatus"
+            }
+          }
+        }
+      },
+      "DeviceClaimResponse": {
+        "type": "object",
+        "properties": {
+          "device-cid": {
+            "type": "string",
+            "example": "1234567890abcdef"
+          },
+          "mac-address": {
+            "type": "string",
+            "example": "00.11.22.aa.bb.cc"
+          },
+          "serial-number": {
+            "type": "string",
+            "example": "2107ABC0001234"
+          },
+          "claim-status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "already-claimed",
+              "invalid-mac",
+              "invalid-serial"
+            ],
+            "example": "success"
+          },
+          "claimed-at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-01T10:00:00Z"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "example": 401
+          },
+          "message": {
+            "type": "string",
+            "example": "Unauthorized. Invalid or missing XiO-subscription-key."
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/device/accountid/{accountid}/devices": {
+      "get": {
+        "operationId": "listDevicesV1",
+        "summary": "List all devices for an account",
+        "description": "Returns all Crestron devices enrolled in the XiO Cloud account, including IP address, MAC address, firmware version, and online status.",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "accountid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            },
+            "description": "XiO Cloud account identifier."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device list retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceSummary"
+                  }
+                },
+                "example": [
+                  {
+                    "device-cid": "1234567890abcdef",
+                    "device-name": "Conference Room A - TSW-1070",
+                    "device-model": "TSW-1070",
+                    "device-category": "Touch Screen",
+                    "device-status": "online",
+                    "nic-1-ip-address": "10.10.1.101",
+                    "nic-1-mac-address": "00.11.22.aa.bb.01",
+                    "serial-number": "2107ABC0001234",
+                    "firmware-version": "2.004.0084",
+                    "room-id": "room-abc123",
+                    "room-name": "Conference Room A",
+                    "last-online-datetime": "2024-06-01T14:22:00Z"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/device/accountid/{accountid}/devicecid/{devicecid}/status": {
+      "get": {
+        "operationId": "getDeviceStatusV1",
+        "summary": "Get full network status for a device (v1)",
+        "description": "Returns detailed network configuration and status for a single device, including both NIC IP addresses, MAC addresses, subnet mask, default gateway, DNS servers, hostname, and domain name.",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "accountid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          },
+          {
+            "name": "devicecid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234567890abcdef"
+            },
+            "description": "Crestron device CID."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device status retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceNetworkStatus"
+                },
+                "example": {
+                  "device-cid": "1234567890abcdef",
+                  "device-name": "Conference Room A - TSW-1070",
+                  "device-model": "TSW-1070",
+                  "device-category": "Touch Screen",
+                  "device-status": "online",
+                  "serial-number": "2107ABC0001234",
+                  "firmware-version": "2.004.0084",
+                  "firmware-date": "2024-03-15",
+                  "status-host-name": "TSW-1070-CONF-A",
+                  "status-domain-name": "corp.example.com",
+                  "nic-1-ip-address": "10.10.1.101",
+                  "nic-1-subnet-mask": "255.255.255.0",
+                  "nic-1-def-router": "10.10.1.1",
+                  "nic-1-mac-address": "00.11.22.aa.bb.01",
+                  "nic-1-dns-servers": "10.10.1.10,10.10.1.11",
+                  "nic-2-ip-address": "",
+                  "nic-2-mac-address": "",
+                  "last-online-datetime": "2024-06-01T14:22:00Z",
+                  "room-id": "room-abc123",
+                  "room-name": "Conference Room A"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/device/accountid/{accountid}/devicecid/{devicecid}/status": {
+      "get": {
+        "operationId": "getDeviceStatusV2",
+        "summary": "Get full network status for a device (v2)",
+        "description": "v2 of the single-device status endpoint. Identical response shape to v1 with added `device-status` field for explicit online/offline state.",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "accountid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          },
+          {
+            "name": "devicecid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234567890abcdef"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device status retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceNetworkStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/device/accountid/{accountid}/devicestatus": {
+      "post": {
+        "operationId": "batchGetDeviceStatus",
+        "summary": "Batch device status lookup",
+        "description": "Retrieve IP address, MAC address, and network status for up to 20 devices in a single call. Submit a list of device CIDs in the request body.",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "accountid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchDeviceStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch status retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDeviceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/device/accountid/{accountId}/pageno/{pagenum}/pagesize/{pagesize}/status": {
+      "get": {
+        "operationId": "listDeviceStatusPaginated",
+        "summary": "List device status (paginated)",
+        "description": "Paginated endpoint returning full network status (IP, MAC, NIC details) for all devices in an account. Use `pageno` and `pagesize` to iterate.",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          },
+          {
+            "name": "pagenum",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pagesize",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated device status list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDeviceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/device/accountid/{accountId}/devicemodel/{deviceModel}/pageno/{pagenum}/pagesize/{pagesize}/status": {
+      "get": {
+        "operationId": "listDeviceStatusByModel",
+        "summary": "List device status filtered by model (paginated)",
+        "description": "Paginated device status filtered by Crestron model number (e.g. `TSW-1070`, `CP4N`, `DM-NVX-360`). Returns IP/MAC and network details for all matching devices.",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          },
+          {
+            "name": "deviceModel",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "TSW-1070"
+            }
+          },
+          {
+            "name": "pagenum",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pagesize",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "example": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filtered paginated device status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDeviceStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/group/accountid/{accountid}/groupid/{groupid}/devices": {
+      "get": {
+        "operationId": "listGroupDevices",
+        "summary": "List devices in a group",
+        "description": "Returns all devices belonging to an XiO Cloud device group, with IP address, MAC address, and online status for each device.",
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "name": "accountid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          },
+          {
+            "name": "groupid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "grp-001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group device list retrieved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDeviceListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/deviceclaim/accountid/{accountId}/macaddress/{macaddress}/serialnumber/{serialnumber}": {
+      "post": {
+        "operationId": "claimDeviceByMac",
+        "summary": "Claim a device by MAC address and serial number",
+        "description": "Register a Crestron device into an XiO Cloud account using its MAC address (dot-separated, e.g. `00.11.22.aa.bb.cc`) and serial number.",
+        "tags": [
+          "Device Claim"
+        ],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "acc-00001"
+            }
+          },
+          {
+            "name": "macaddress",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{2}\\.[0-9a-f]{2}\\.[0-9a-f]{2}\\.[0-9a-f]{2}\\.[0-9a-f]{2}\\.[0-9a-f]{2}$",
+              "example": "00.11.22.aa.bb.cc"
+            },
+            "description": "Device MAC address in Crestron dot-separated format."
+          },
+          {
+            "name": "serialnumber",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2107ABC0001234"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device claimed successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceClaimResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Device already claimed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

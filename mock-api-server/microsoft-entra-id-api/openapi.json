@@ -1,0 +1,1186 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Microsoft Entra ID API",
+    "version": "1.0.0",
+    "description": "Microsoft Graph API endpoints for Microsoft Entra ID (formerly Azure Active Directory). Covers users, devices (Entra-joined machines), groups, and service principals. Device records cross-reference with Microsoft Defender for Endpoint via device.deviceId == machine.aadDeviceId."
+  },
+  "servers": [
+    {
+      "url": "https://graph.microsoft.com",
+      "description": "Microsoft Graph"
+    }
+  ],
+  "security": [
+    {
+      "EntraOAuth2": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "EntraOAuth2": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+            "scopes": {
+              "https://graph.microsoft.com/.default": "Access all consented Graph permissions"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ODataListResponse": {
+        "type": "object",
+        "properties": {
+          "@odata.context": {
+            "type": "string",
+            "example": "https://graph.microsoft.com/v1.0/$metadata#users"
+          },
+          "@odata.count": {
+            "type": "integer",
+            "example": 3
+          },
+          "@odata.nextLink": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "description": "Entra ID user object.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Entra directory object ID (primary key in Graph).",
+            "example": "aaaaaaaa-0000-0001-0000-000000000001"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Alice Johnson"
+          },
+          "givenName": {
+            "type": "string",
+            "example": "Alice"
+          },
+          "surname": {
+            "type": "string",
+            "example": "Johnson"
+          },
+          "userPrincipalName": {
+            "type": "string",
+            "description": "UPN / sign-in name.",
+            "example": "alice.johnson@contoso.com"
+          },
+          "mail": {
+            "type": "string",
+            "format": "email",
+            "example": "alice.johnson@contoso.com"
+          },
+          "jobTitle": {
+            "type": "string",
+            "example": "Security Engineer"
+          },
+          "department": {
+            "type": "string",
+            "example": "Information Security"
+          },
+          "officeLocation": {
+            "type": "string",
+            "example": "Building A - Floor 3"
+          },
+          "mobilePhone": {
+            "type": "string",
+            "example": "+1-555-0101"
+          },
+          "businessPhones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "+1-555-0100"
+            ]
+          },
+          "accountEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "userType": {
+            "type": "string",
+            "enum": [
+              "Member",
+              "Guest"
+            ],
+            "example": "Member"
+          },
+          "companyName": {
+            "type": "string",
+            "example": "Contoso Ltd"
+          },
+          "employeeId": {
+            "type": "string",
+            "example": "EMP-00001"
+          },
+          "employeeType": {
+            "type": "string",
+            "enum": [
+              "Employee",
+              "Contractor",
+              "Vendor",
+              "Intern"
+            ],
+            "example": "Employee"
+          },
+          "securityIdentifier": {
+            "type": "string",
+            "description": "Windows SID.",
+            "example": "S-1-12-1-0000000001-0000000001-0000000001-0000000001"
+          },
+          "onPremisesSamAccountName": {
+            "type": "string",
+            "description": "On-premises AD SAM name (for hybrid-synced accounts).",
+            "example": "ajohnson"
+          },
+          "onPremisesSyncEnabled": {
+            "type": "boolean",
+            "description": "True if synced from on-premises AD via Entra Connect.",
+            "example": true
+          },
+          "onPremisesLastSyncDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-01T02:00:00Z"
+          },
+          "createdDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2022-01-10T09:00:00Z"
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "example": "en-US"
+          }
+        }
+      },
+      "Device": {
+        "type": "object",
+        "description": "Entra ID registered/joined device. deviceId cross-references machine.aadDeviceId in Microsoft Defender for Endpoint.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Entra directory object ID (internal Graph key \u2014 NOT the same as Defender machine.id).",
+            "example": "bbbbbbbb-0000-0001-0000-000000000001"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Azure Device Registration Service ID. CROSS-REFERENCE: equals machine.aadDeviceId in Microsoft Defender for Endpoint.",
+            "example": "eab73519-780d-4d43-be6d-a4a89af2a001"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Device hostname / computer name.",
+            "example": "DESKTOP-CONTOSO01"
+          },
+          "accountEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "operatingSystem": {
+            "type": "string",
+            "enum": [
+              "Windows",
+              "iOS",
+              "Android",
+              "macOS",
+              "Linux"
+            ],
+            "example": "Windows"
+          },
+          "operatingSystemVersion": {
+            "type": "string",
+            "example": "10.0.19045.3803"
+          },
+          "trustType": {
+            "type": "string",
+            "enum": [
+              "AzureAd",
+              "ServerAd",
+              "Workplace"
+            ],
+            "description": "AzureAd=cloud-joined; ServerAd=hybrid/on-prem domain-joined; Workplace=BYOD registered.",
+            "example": "AzureAd"
+          },
+          "profileType": {
+            "type": "string",
+            "enum": [
+              "RegisteredDevice",
+              "SecureVM",
+              "Printer",
+              "Shared",
+              "IoT"
+            ],
+            "example": "RegisteredDevice"
+          },
+          "manufacturer": {
+            "type": "string",
+            "example": "Dell Inc."
+          },
+          "model": {
+            "type": "string",
+            "example": "Latitude 5540"
+          },
+          "isCompliant": {
+            "type": "boolean",
+            "description": "MDM (Intune) compliance status.",
+            "example": true
+          },
+          "isManaged": {
+            "type": "boolean",
+            "description": "Whether managed by an MDM policy.",
+            "example": true
+          },
+          "deviceOwnership": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "company",
+              "personal"
+            ],
+            "example": "company"
+          },
+          "managementType": {
+            "type": "string",
+            "enum": [
+              "eas",
+              "mdm",
+              "easMdm",
+              "intuneClient",
+              "configurationManagerClient",
+              "configurationManagerClientMdm",
+              "jamf"
+            ],
+            "example": "mdm"
+          },
+          "enrollmentType": {
+            "type": "string",
+            "example": "windowsAzureADJoin"
+          },
+          "approximateLastSignInDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-01T08:15:00Z"
+          },
+          "registrationDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:00:00Z"
+          },
+          "onPremisesSecurityIdentifier": {
+            "type": "string",
+            "description": "On-premises AD computer object SID (hybrid-joined devices only).",
+            "example": "S-1-5-21-0000000001-0000000002-0000000003-1234"
+          },
+          "onPremisesSyncEnabled": {
+            "type": "boolean",
+            "example": false
+          },
+          "physicalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Hardware IDs including Autopilot ZTDID and hardware hash.",
+            "example": [
+              "[ZTDID]:ZTD-CONTOSO-001",
+              "[GID]:g:00000000FFFFFFFF"
+            ]
+          },
+          "systemLabels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": []
+          }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "description": "Entra ID security or Microsoft 365 group.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "cccccccc-0000-0001-0000-000000000001"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "IT Security Team"
+          },
+          "description": {
+            "type": "string",
+            "example": "All members of the Information Security department"
+          },
+          "mail": {
+            "type": "string",
+            "format": "email",
+            "nullable": true,
+            "example": "it-security@contoso.com"
+          },
+          "mailEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "mailNickname": {
+            "type": "string",
+            "example": "it-security"
+          },
+          "securityEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "securityIdentifier": {
+            "type": "string",
+            "example": "S-1-12-1-0000000002-0000000002-0000000002-0000000002"
+          },
+          "groupTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Unified=M365; DynamicMembership=dynamic rule; empty=security/distribution.",
+            "example": []
+          },
+          "membershipRule": {
+            "type": "string",
+            "nullable": true,
+            "description": "Dynamic membership rule \u2014 can target device properties like operatingSystem, deviceId.",
+            "example": "(device.operatingSystem -eq \"Windows\") -and (device.deviceOwnership -eq \"company\")"
+          },
+          "membershipRuleProcessingState": {
+            "type": "string",
+            "enum": [
+              "On",
+              "Paused"
+            ],
+            "nullable": true,
+            "example": "On"
+          },
+          "onPremisesSamAccountName": {
+            "type": "string",
+            "nullable": true,
+            "example": "IT-Security"
+          },
+          "onPremisesNetBiosName": {
+            "type": "string",
+            "nullable": true,
+            "example": "CONTOSO"
+          },
+          "onPremisesSyncEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "onPremisesLastSyncDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-01T02:00:00Z"
+          },
+          "isAssignableToRole": {
+            "type": "boolean",
+            "description": "Can this group be assigned Entra directory roles.",
+            "example": false
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "Public",
+              "Private",
+              "HiddenMembership"
+            ],
+            "nullable": true,
+            "example": "Private"
+          },
+          "createdDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2021-03-01T12:00:00Z"
+          }
+        }
+      },
+      "ServicePrincipal": {
+        "type": "object",
+        "description": "Entra ID service principal (application identity or managed identity). ManagedIdentity type has alternativeNames linking to Azure resource IDs.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "dddddddd-0000-0001-0000-000000000001"
+          },
+          "appId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Application (client) ID \u2014 used in OAuth2 client_credentials flows.",
+            "example": "11111111-2222-3333-4444-555555555501"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Contoso Security Scanner"
+          },
+          "accountEnabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "servicePrincipalType": {
+            "type": "string",
+            "enum": [
+              "Application",
+              "ManagedIdentity",
+              "Legacy",
+              "SocialIdp"
+            ],
+            "example": "Application"
+          },
+          "signInAudience": {
+            "type": "string",
+            "enum": [
+              "AzureADMyOrg",
+              "AzureADMultipleOrgs",
+              "AzureADandPersonalMicrosoftAccount",
+              "PersonalMicrosoftAccount"
+            ],
+            "example": "AzureADMyOrg"
+          },
+          "appOwnerOrganizationId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "ffffffff-0000-0000-0000-000000000001"
+          },
+          "appDisplayName": {
+            "type": "string",
+            "example": "Contoso Security Scanner"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Internal security scanning service"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "WindowsAzureActiveDirectoryIntegratedApp"
+            ]
+          },
+          "alternativeNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "For ManagedIdentity: contains /subscriptions/{subId}/resourceGroups/{rg}/providers/{provider}/{resourceName} \u2014 links SP to Azure infrastructure.",
+            "example": []
+          },
+          "appRoleAssignmentRequired": {
+            "type": "boolean",
+            "example": false
+          },
+          "servicePrincipalNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "api://contoso-security-scanner",
+              "11111111-2222-3333-4444-555555555501"
+            ]
+          },
+          "replyUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "https://contoso.com/auth/callback"
+            ]
+          },
+          "notificationEmailAddresses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
+            "example": [
+              "it-ops@contoso.com"
+            ]
+          },
+          "createdDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2022-06-15T09:00:00Z"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1.0/users": {
+      "get": {
+        "operationId": "listUsers",
+        "summary": "List all users",
+        "description": "Returns all Entra ID users in the tenant. Supports OData query parameters ($select, $filter, $top, $orderby, $count). Pagination via @odata.nextLink.",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,displayName,userPrincipalName,accountEnabled"
+          },
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "accountEnabled eq true"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 999
+            },
+            "example": 100
+          },
+          {
+            "name": "$orderby",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "displayName asc"
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/User"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users",
+                  "@odata.count": 3,
+                  "value": [
+                    {
+                      "id": "aaaaaaaa-0000-0001-0000-000000000001",
+                      "displayName": "Alice Johnson",
+                      "givenName": "Alice",
+                      "surname": "Johnson",
+                      "userPrincipalName": "alice.johnson@contoso.com",
+                      "mail": "alice.johnson@contoso.com",
+                      "jobTitle": "Security Engineer",
+                      "department": "Information Security",
+                      "accountEnabled": true,
+                      "userType": "Member",
+                      "onPremisesSamAccountName": "ajohnson",
+                      "onPremisesSyncEnabled": true
+                    },
+                    {
+                      "id": "aaaaaaaa-0000-0002-0000-000000000002",
+                      "displayName": "Bob Martinez",
+                      "givenName": "Bob",
+                      "surname": "Martinez",
+                      "userPrincipalName": "bob.martinez@contoso.com",
+                      "mail": "bob.martinez@contoso.com",
+                      "jobTitle": "IT Administrator",
+                      "department": "IT Operations",
+                      "accountEnabled": true,
+                      "userType": "Member",
+                      "onPremisesSamAccountName": "bmartinez",
+                      "onPremisesSyncEnabled": true
+                    }
+                  ],
+                  "@odata.nextLink": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/users/{id}": {
+      "get": {
+        "operationId": "getUser",
+        "summary": "Get a user by ID or UPN",
+        "description": "Returns a single Entra ID user by object ID (GUID) or userPrincipalName.",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "User object ID (GUID) or userPrincipalName.",
+            "example": "aaaaaaaa-0000-0001-0000-000000000001"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,displayName,userPrincipalName,jobTitle,onPremisesSamAccountName"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single user object.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                },
+                "example": {
+                  "id": "aaaaaaaa-0000-0001-0000-000000000001",
+                  "displayName": "Alice Johnson",
+                  "givenName": "Alice",
+                  "surname": "Johnson",
+                  "userPrincipalName": "alice.johnson@contoso.com",
+                  "mail": "alice.johnson@contoso.com",
+                  "jobTitle": "Security Engineer",
+                  "department": "Information Security",
+                  "officeLocation": "Building A - Floor 3",
+                  "mobilePhone": "+1-555-0101",
+                  "accountEnabled": true,
+                  "userType": "Member",
+                  "employeeId": "EMP-00001",
+                  "employeeType": "Employee",
+                  "securityIdentifier": "S-1-12-1-0000000001-0000000001-0000000001-0000000001",
+                  "onPremisesSamAccountName": "ajohnson",
+                  "onPremisesSyncEnabled": true,
+                  "onPremisesLastSyncDateTime": "2024-06-01T02:00:00Z",
+                  "createdDateTime": "2022-01-10T09:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found."
+          }
+        }
+      }
+    },
+    "/v1.0/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "summary": "List Entra-registered and joined devices",
+        "description": "Returns all devices registered or joined to Entra ID. The `deviceId` field is the Azure Device Registration ID and equals `machine.aadDeviceId` in Microsoft Defender for Endpoint \u2014 use this to correlate Entra device records with Defender machine records. Does NOT contain IP or MAC addresses (those live in Defender/Intune).",
+        "tags": [
+          "Devices"
+        ],
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "operatingSystem eq 'Windows' and trustType eq 'AzureAd'"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,deviceId,displayName,operatingSystem,isCompliant,trustType"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 10000
+            },
+            "example": 100
+          },
+          {
+            "name": "$orderby",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "approximateLastSignInDateTime desc"
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of devices.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Device"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#devices",
+                  "@odata.count": 3,
+                  "value": [
+                    {
+                      "id": "bbbbbbbb-0000-0001-0000-000000000001",
+                      "deviceId": "eab73519-780d-4d43-be6d-a4a89af2a001",
+                      "displayName": "DESKTOP-CONTOSO01",
+                      "accountEnabled": true,
+                      "operatingSystem": "Windows",
+                      "operatingSystemVersion": "10.0.19045.3803",
+                      "trustType": "AzureAd",
+                      "manufacturer": "Dell Inc.",
+                      "model": "Latitude 5540",
+                      "isCompliant": true,
+                      "isManaged": true,
+                      "deviceOwnership": "company",
+                      "managementType": "mdm",
+                      "approximateLastSignInDateTime": "2024-06-01T08:15:00Z",
+                      "registrationDateTime": "2023-01-15T10:00:00Z",
+                      "physicalIds": [
+                        "[ZTDID]:ZTD-CONTOSO-001"
+                      ]
+                    },
+                    {
+                      "id": "bbbbbbbb-0000-0002-0000-000000000002",
+                      "deviceId": "eab73519-780d-4d43-be6d-a4a89af2a002",
+                      "displayName": "DESKTOP-CONTOSO02",
+                      "accountEnabled": true,
+                      "operatingSystem": "Windows",
+                      "operatingSystemVersion": "10.0.22621.2506",
+                      "trustType": "AzureAd",
+                      "manufacturer": "HP",
+                      "model": "EliteBook 840 G9",
+                      "isCompliant": true,
+                      "isManaged": true,
+                      "deviceOwnership": "company",
+                      "managementType": "mdm",
+                      "approximateLastSignInDateTime": "2024-05-31T17:00:00Z",
+                      "registrationDateTime": "2023-03-10T09:00:00Z"
+                    }
+                  ],
+                  "@odata.nextLink": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/groups": {
+      "get": {
+        "operationId": "listGroups",
+        "summary": "List all groups",
+        "description": "Returns all Entra ID security and Microsoft 365 groups. Dynamic groups (groupTypes: DynamicMembership) use a membershipRule expression that can target device properties (operatingSystem, deviceOwnership, deviceId) to automatically include Entra-joined machines.",
+        "tags": [
+          "Groups"
+        ],
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "securityEnabled eq true"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,displayName,securityEnabled,groupTypes,membershipRule"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 999
+            },
+            "example": 100
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of groups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Group"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#groups",
+                  "@odata.count": 3,
+                  "value": [
+                    {
+                      "id": "cccccccc-0000-0001-0000-000000000001",
+                      "displayName": "IT Security Team",
+                      "description": "All members of the Information Security department",
+                      "mailEnabled": true,
+                      "securityEnabled": true,
+                      "mailNickname": "it-security",
+                      "mail": "it-security@contoso.com",
+                      "groupTypes": [],
+                      "onPremisesSamAccountName": "IT-Security",
+                      "onPremisesSyncEnabled": true,
+                      "createdDateTime": "2021-03-01T12:00:00Z"
+                    },
+                    {
+                      "id": "cccccccc-0000-0002-0000-000000000002",
+                      "displayName": "All Company Windows Devices",
+                      "description": "Dynamic group \u2014 all company-owned Windows devices",
+                      "mailEnabled": false,
+                      "securityEnabled": true,
+                      "mailNickname": "all-windows-devices",
+                      "groupTypes": [
+                        "DynamicMembership"
+                      ],
+                      "membershipRule": "(device.operatingSystem -eq \"Windows\") -and (device.deviceOwnership -eq \"company\")",
+                      "membershipRuleProcessingState": "On",
+                      "onPremisesSyncEnabled": false,
+                      "createdDateTime": "2022-05-10T08:00:00Z"
+                    }
+                  ],
+                  "@odata.nextLink": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/servicePrincipals": {
+      "get": {
+        "operationId": "listServicePrincipals",
+        "summary": "List service principals",
+        "description": "Returns all service principals in the tenant \u2014 app registrations, managed identities, and enterprise apps. ManagedIdentity type SPs have alternativeNames containing the full Azure resource ID (/subscriptions/{subId}/resourceGroups/{rg}/providers/{provider}/{resourceName}), which links the SP to specific Azure infrastructure (VMs, App Services, etc.).",
+        "tags": [
+          "Service Principals"
+        ],
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "servicePrincipalType eq 'ManagedIdentity'"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,appId,displayName,servicePrincipalType,alternativeNames"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 999
+            },
+            "example": 100
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of service principals.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ServicePrincipal"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#servicePrincipals",
+                  "@odata.count": 2,
+                  "value": [
+                    {
+                      "id": "dddddddd-0000-0001-0000-000000000001",
+                      "appId": "11111111-2222-3333-4444-555555555501",
+                      "displayName": "Contoso Security Scanner",
+                      "accountEnabled": true,
+                      "servicePrincipalType": "Application",
+                      "signInAudience": "AzureADMyOrg",
+                      "tags": [
+                        "WindowsAzureActiveDirectoryIntegratedApp"
+                      ],
+                      "alternativeNames": [],
+                      "servicePrincipalNames": [
+                        "api://contoso-security-scanner",
+                        "11111111-2222-3333-4444-555555555501"
+                      ],
+                      "createdDateTime": "2022-06-15T09:00:00Z"
+                    },
+                    {
+                      "id": "dddddddd-0000-0002-0000-000000000002",
+                      "appId": "11111111-2222-3333-4444-555555555502",
+                      "displayName": "vm-contoso-sec-01-identity",
+                      "accountEnabled": true,
+                      "servicePrincipalType": "ManagedIdentity",
+                      "signInAudience": "AzureADMyOrg",
+                      "tags": [],
+                      "alternativeNames": [
+                        "isExplicit=False",
+                        "/subscriptions/ffffffff-0000-0000-0000-000000000001/resourceGroups/rg-security/providers/Microsoft.Compute/virtualMachines/vm-contoso-sec-01"
+                      ],
+                      "createdDateTime": "2023-08-01T14:00:00Z"
+                    }
+                  ],
+                  "@odata.nextLink": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/users/{id}/memberOf": {
+      "get": {
+        "operationId": "getUserMemberOf",
+        "summary": "List groups and roles a user belongs to",
+        "description": "Returns all groups and directory roles the user is a member of. Includes both security groups (on-prem synced and cloud-only) and Entra directory roles. Use this to understand a user's access scope.",
+        "tags": ["Users"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "User object ID or userPrincipalName.", "example": "aaaaaaaa-0000-0001-0000-000000000001" },
+          { "name": "$select", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of groups and directory roles the user is a member of.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.context": { "type": "string" },
+                    "@odata.count": { "type": "integer" },
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata.type":   { "type": "string", "example": "#microsoft.graph.group" },
+                          "id":            { "type": "string", "format": "uuid" },
+                          "displayName":   { "type": "string" },
+                          "description":   { "type": "string" },
+                          "securityEnabled": { "type": "boolean" },
+                          "groupTypes":    { "type": "array", "items": { "type": "string" } },
+                          "roleTemplateId":{ "type": "string", "description": "Only present for directoryRole objects." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "User not found." }
+        }
+      }
+    },
+    "/v1.0/groups/{id}/members": {
+      "get": {
+        "operationId": "getGroupMembers",
+        "summary": "List members of a group",
+        "description": "Returns all members of the group — can include users, devices, service principals, and nested groups. Each member object includes @odata.type to distinguish member type.",
+        "tags": ["Groups"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Group object ID.", "example": "cccccccc-0000-0001-0000-000000000001" },
+          { "name": "$select", "in": "query", "schema": { "type": "string" } },
+          { "name": "$top", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of group members (users and/or devices).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.context": { "type": "string" },
+                    "@odata.count": { "type": "integer" },
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "@odata.type":          { "type": "string", "example": "#microsoft.graph.user" },
+                          "id":                   { "type": "string", "format": "uuid" },
+                          "displayName":          { "type": "string" },
+                          "userPrincipalName":    { "type": "string", "description": "Present for user members." },
+                          "deviceId":             { "type": "string", "description": "Present for device members — equals Intune azureADDeviceId and Defender aadDeviceId." },
+                          "operatingSystem":      { "type": "string", "description": "Present for device members." },
+                          "trustType":            { "type": "string", "description": "Present for device members." },
+                          "isCompliant":          { "type": "boolean", "description": "Present for device members." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Group not found." }
+        }
+      }
+    },
+    "/v1.0/devices/{id}/registeredUsers": {
+      "get": {
+        "operationId": "getDeviceRegisteredUsers",
+        "summary": "List users registered to a device",
+        "description": "Returns the users who registered this device in Entra ID. Typically one user (the employee who joined the laptop to Entra). The user id cross-references Intune managedDevice.userId.",
+        "tags": ["Devices"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Entra device directory object ID.", "example": "bbbbbbbb-0000-0001-0000-000000000001" }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of users registered to the device.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.context": { "type": "string" },
+                    "value": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/User" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Device not found." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,373 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Verkada API",
+    "version": "1.0.0",
+    "description": "Verkada public API — cameras, camera alerts, and alarm sensor devices"
+  },
+  "servers": [
+    { "url": "http://localhost:9092", "description": "Local mock" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key from Verkada Command dashboard — mock value: mock-apikey-key"
+      }
+    }
+  },
+  "security": [{ "ApiKey": [] }],
+  "paths": {
+    "/cameras/v1/devices": {
+      "get": {
+        "operationId": "getCameras",
+        "summary": "List all cameras in the organization",
+        "tags": ["Cameras"],
+        "security": [{ "ApiKey": [] }],
+        "parameters": [
+          { "name": "page_size",  "in": "query", "schema": { "type": "integer", "default": 100, "maximum": 200 } },
+          { "name": "page_token", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of cameras",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cameras": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "camera_id":     { "type": "string", "format": "uuid" },
+                          "name":          { "type": "string" },
+                          "site_id":       { "type": "string" },
+                          "site_name":     { "type": "string" },
+                          "model":         { "type": "string" },
+                          "serial":        { "type": "string" },
+                          "mac":           { "type": "string" },
+                          "local_ip":      { "type": "string" },
+                          "firmware":      { "type": "string" },
+                          "status":        { "type": "string", "enum": ["online", "offline"] },
+                          "retention_days":{ "type": "integer" },
+                          "location": {
+                            "type": "object",
+                            "properties": {
+                              "latitude":  { "type": "number" },
+                              "longitude": { "type": "number" },
+                              "angle":     { "type": "integer" }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "next_page_token": { "type": "string", "nullable": true }
+                  }
+                },
+                "example": {
+                  "cameras": [
+                    {
+                      "camera_id": "a1b2c3d4-0001-0001-0001-aabbccddeeff",
+                      "name": "Front Entrance", "site_id": "site-0001-0001-0001-000000000001",
+                      "site_name": "HQ Building A", "model": "CD52", "serial": "20KAK5000001",
+                      "mac": "00:1A:2B:3C:4D:01", "local_ip": "10.0.1.101",
+                      "firmware": "1.0.1-c9d8a14", "status": "online", "retention_days": 30,
+                      "location": { "latitude": 37.3382, "longitude": -121.8863, "angle": 270 }
+                    },
+                    {
+                      "camera_id": "a1b2c3d4-0002-0002-0002-aabbccddeeff",
+                      "name": "Parking Lot North", "site_id": "site-0001-0001-0001-000000000001",
+                      "site_name": "HQ Building A", "model": "CD62", "serial": "20KAK5000002",
+                      "mac": "00:1A:2B:3C:4D:02", "local_ip": "10.0.1.102",
+                      "firmware": "1.0.1-c9d8a14", "status": "online", "retention_days": 30,
+                      "location": { "latitude": 37.3385, "longitude": -121.8870, "angle": 180 }
+                    },
+                    {
+                      "camera_id": "a1b2c3d4-0003-0003-0003-aabbccddeeff",
+                      "name": "Server Room Door", "site_id": "site-0001-0001-0001-000000000002",
+                      "site_name": "HQ Building B", "model": "CD51", "serial": "20KAK5000003",
+                      "mac": "00:1A:2B:3C:4D:03", "local_ip": "10.0.2.101",
+                      "firmware": "1.0.0-b7e3f21", "status": "offline", "retention_days": 90,
+                      "location": { "latitude": 37.3390, "longitude": -121.8855, "angle": 0 }
+                    }
+                  ],
+                  "next_page_token": null
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    },
+    "/cameras/v1/alerts": {
+      "get": {
+        "operationId": "getCameraAlerts",
+        "summary": "List camera-triggered alert events",
+        "description": "Returns alert events. Each alert contains a camera_id linking it to a camera in GET /cameras/v1/devices.",
+        "tags": ["Cameras", "Alarms"],
+        "security": [{ "ApiKey": [] }],
+        "parameters": [
+          { "name": "start_time",        "in": "query", "required": true, "schema": { "type": "integer" }, "example": 1705060800 },
+          { "name": "end_time",          "in": "query", "required": true, "schema": { "type": "integer" }, "example": 1705104000 },
+          { "name": "notification_type", "in": "query", "schema": { "type": "string" }, "description": "Comma-separated alert types" },
+          { "name": "page_size",         "in": "query", "schema": { "type": "integer", "default": 100 } },
+          { "name": "page_token",        "in": "query", "schema": { "type": "string" } },
+          { "name": "include_image_url", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of camera alert events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "alerts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "alert_id":          { "type": "string" },
+                          "camera_id":         { "type": "string", "description": "Links to camera_id in /cameras/v1/devices" },
+                          "camera_name":       { "type": "string" },
+                          "site_id":           { "type": "string" },
+                          "created":           { "type": "integer", "description": "Unix timestamp" },
+                          "notification_type": { "type": "string", "enum": ["motion", "person_of_interest", "license_plate_of_interest", "tamper", "crowd", "line_crossing", "loitering", "camera_offline", "camera_online"] },
+                          "objects":           { "type": "array", "items": { "type": "string" } },
+                          "image_url":         { "type": "string" },
+                          "video_url":         { "type": "string" },
+                          "person_label":      { "type": "string" }
+                        }
+                      }
+                    },
+                    "next_page_token": { "type": "string", "nullable": true }
+                  }
+                },
+                "example": {
+                  "alerts": [
+                    {
+                      "alert_id": "evt-0001-0001-0001-000000000001",
+                      "camera_id": "a1b2c3d4-0001-0001-0001-aabbccddeeff",
+                      "camera_name": "Front Entrance", "site_id": "site-0001-0001-0001-000000000001",
+                      "created": 1705060800, "notification_type": "person_of_interest",
+                      "objects": ["person"],
+                      "image_url": "https://vimage.verkada.com/mock/alert-0001.jpg",
+                      "video_url": "https://vcamera.verkada.com/mock/clip-0001.mp4",
+                      "person_label": "POI-Watch-List-A"
+                    },
+                    {
+                      "alert_id": "evt-0001-0001-0001-000000000002",
+                      "camera_id": "a1b2c3d4-0002-0002-0002-aabbccddeeff",
+                      "camera_name": "Parking Lot North", "site_id": "site-0001-0001-0001-000000000001",
+                      "created": 1705064400, "notification_type": "motion",
+                      "objects": ["vehicle"],
+                      "image_url": "https://vimage.verkada.com/mock/alert-0002.jpg",
+                      "video_url": "https://vcamera.verkada.com/mock/clip-0002.mp4"
+                    }
+                  ],
+                  "next_page_token": null
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    },
+    "/alarms/v1/sites": {
+      "get": {
+        "operationId": "getAlarmsSites",
+        "summary": "List alarm sites",
+        "description": "Returns all alarm sites in the organization, including arm state and security level. Filter by site_ids to retrieve specific sites.",
+        "tags": ["Alarms"],
+        "security": [{ "ApiKey": [] }],
+        "parameters": [
+          {
+            "name": "site_ids",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Comma-delimited list of site unique identifiers. Omit to return all sites."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of alarm sites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sites": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "site_id":             { "type": "string", "format": "uuid", "description": "Unique identifier of the alarm site" },
+                          "site_name":           { "type": "string", "description": "Human-readable name of the site" },
+                          "site_security_level": {
+                            "type": "string",
+                            "enum": ["high", "low", "custom"],
+                            "description": "high — alerts on any visible threat; low — alerts only on threats to person/property; custom — based on preferences"
+                          },
+                          "site_state": {
+                            "type": "string",
+                            "enum": ["disarmed", "armed", "alarm", "silent_alarm"],
+                            "description": "Current arm state of the site"
+                          }
+                        },
+                        "required": ["site_id", "site_name"]
+                      }
+                    }
+                  },
+                  "required": ["sites"]
+                },
+                "example": {
+                  "sites": [
+                    {
+                      "site_id": "fc749669-1370-4a9d-84e3-daf777e0546c",
+                      "site_name": "HQ Building A",
+                      "site_security_level": "high",
+                      "site_state": "armed"
+                    },
+                    {
+                      "site_id": "fc749669-1370-4a9d-84e3-daf777e0546d",
+                      "site_name": "HQ Building B",
+                      "site_security_level": "low",
+                      "site_state": "disarmed"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    },
+    "/guest/v1/sites": {
+      "get": {
+        "operationId": "getGuestSites",
+        "summary": "List guest-access sites",
+        "description": "Returns all sites visible to the guest management module, with org_id, site_id, and site_name.",
+        "tags": ["Guest"],
+        "security": [{ "ApiKey": [] }],
+        "responses": {
+          "200": {
+            "description": "List of guest-access sites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sites": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "org_id":   { "type": "string", "format": "uuid", "description": "Organization identifier" },
+                          "site_id":  { "type": "string", "format": "uuid", "description": "Site unique identifier" },
+                          "site_name":{ "type": "string", "description": "Human-readable site name" }
+                        },
+                        "required": ["org_id", "site_id", "site_name"]
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "sites": [
+                    {
+                      "org_id": "aaaaaaaa-bbbb-cccc-dddd-000000000001",
+                      "site_id": "fc749669-1370-4a9d-84e3-daf777e0546c",
+                      "site_name": "HQ Building A"
+                    },
+                    {
+                      "org_id": "aaaaaaaa-bbbb-cccc-dddd-000000000001",
+                      "site_id": "fc749669-1370-4a9d-84e3-daf777e0546d",
+                      "site_name": "HQ Building B"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    },
+    "/alarms/v1/devices": {
+      "get": {
+        "operationId": "getAlarmDevices",
+        "summary": "List alarm sensor devices",
+        "description": "Devices with a camera_id field are associated with a camera. Use that camera_id to look up details in GET /cameras/v1/devices.",
+        "tags": ["Alarms"],
+        "security": [{ "ApiKey": [] }],
+        "parameters": [
+          { "name": "site_id",    "in": "query", "schema": { "type": "string" } },
+          { "name": "page_size",  "in": "query", "schema": { "type": "integer", "default": 100 } },
+          { "name": "page_token", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of alarm sensor devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "alarm_devices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "device_id":   { "type": "string" },
+                          "site_id":     { "type": "string" },
+                          "site_name":   { "type": "string" },
+                          "name":        { "type": "string" },
+                          "device_type": { "type": "string", "enum": ["door_contact", "motion_sensor", "glass_break", "panic_button", "smoke_detector"] },
+                          "zone":        { "type": "string" },
+                          "status":      { "type": "string", "enum": ["normal", "alarm", "trouble", "offline"] },
+                          "camera_id":   { "type": "string", "description": "Camera associated with this alarm zone — links to /cameras/v1/devices" },
+                          "camera_name": { "type": "string" },
+                          "last_seen":   { "type": "integer" }
+                        }
+                      }
+                    },
+                    "next_page_token": { "type": "string", "nullable": true }
+                  }
+                },
+                "example": {
+                  "alarm_devices": [
+                    {
+                      "device_id": "alm-dev-0001-0001-000000000001",
+                      "site_id": "site-0001-0001-0001-000000000001", "site_name": "HQ Building A",
+                      "name": "Main Entrance Door Sensor", "device_type": "door_contact",
+                      "zone": "Zone 1 — Perimeter", "status": "normal",
+                      "camera_id": "a1b2c3d4-0001-0001-0001-aabbccddeeff",
+                      "camera_name": "Front Entrance", "last_seen": 1705104000
+                    },
+                    {
+                      "device_id": "alm-dev-0001-0001-000000000003",
+                      "site_id": "site-0001-0001-0001-000000000002", "site_name": "HQ Building B",
+                      "name": "Server Room Glass Break", "device_type": "glass_break",
+                      "zone": "Zone 3 — Server Room", "status": "alarm",
+                      "camera_id": "a1b2c3d4-0003-0003-0003-aabbccddeeff",
+                      "camera_name": "Server Room Door", "last_seen": 1705100000
+                    }
+                  ],
+                  "next_page_token": null
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      }
+    }
+  }
+}

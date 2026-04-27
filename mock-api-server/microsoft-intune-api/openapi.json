@@ -1,0 +1,1271 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Microsoft Intune API",
+    "version": "1.0.0",
+    "description": "Microsoft Graph API endpoints for Microsoft Intune (Endpoint Manager). Covers managed device inventory with IP, MAC, serial, storage and memory data; compliance policies; device configuration profiles; and per-device compliance state. Managed device records link to Entra ID via azureADDeviceId == Entra device.deviceId, and to Defender via aadDeviceId."
+  },
+  "servers": [
+    {
+      "url": "https://graph.microsoft.com",
+      "description": "Microsoft Graph"
+    }
+  ],
+  "security": [
+    {
+      "IntuneOAuth2": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "IntuneOAuth2": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/token",
+            "scopes": {
+              "https://graph.microsoft.com/.default": "Access all consented Graph permissions including DeviceManagementManagedDevices.Read.All"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "ODataListResponse": {
+        "type": "object",
+        "properties": {
+          "@odata.context": {
+            "type": "string"
+          },
+          "@odata.count": {
+            "type": "integer"
+          },
+          "@odata.nextLink": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ManagedDevice": {
+        "type": "object",
+        "description": "Intune-enrolled device with full hardware and network inventory. azureADDeviceId links to Entra ID device.deviceId and Defender machine.aadDeviceId.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Intune-internal device GUID. NOT the same as Entra device.id.",
+            "example": "eeeeeeee-0001-0001-0001-000000000001"
+          },
+          "azureADDeviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "CROSS-REFERENCE KEY \u2014 equals Entra device.deviceId and Defender machine.aadDeviceId.",
+            "example": "eab73519-780d-4d43-be6d-a4a89af2a001"
+          },
+          "deviceName": {
+            "type": "string",
+            "description": "Hostname / computer name.",
+            "example": "DESKTOP-CONTOSO01"
+          },
+          "operatingSystem": {
+            "type": "string",
+            "example": "Windows"
+          },
+          "osVersion": {
+            "type": "string",
+            "example": "10.0.19045.3803"
+          },
+          "osBuildNumber": {
+            "type": "string",
+            "example": "19045.3803"
+          },
+          "complianceState": {
+            "type": "string",
+            "enum": [
+              "compliant",
+              "noncompliant",
+              "unknown",
+              "notApplicable",
+              "inGracePeriod",
+              "configManager"
+            ],
+            "example": "compliant"
+          },
+          "managementAgent": {
+            "type": "string",
+            "enum": [
+              "eas",
+              "mdm",
+              "easMdm",
+              "intuneClient",
+              "easIntuneClient",
+              "configurationManagerClient",
+              "configurationManagerClientMdm",
+              "configurationManagerClientMdmEas",
+              "jamf",
+              "googleCloudDevicePolicyController",
+              "microsoft365ManagedMdm"
+            ],
+            "example": "mdm"
+          },
+          "managedDeviceOwnerType": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "company",
+              "personal"
+            ],
+            "example": "company"
+          },
+          "deviceEnrollmentType": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "userEnrollment",
+              "deviceEnrollmentManager",
+              "appleBulkWithUser",
+              "appleBulkWithoutUser",
+              "windowsAzureADJoin",
+              "windowsBulkUserless",
+              "windowsAutoEnrollment",
+              "windowsBulkAzureDomainJoin",
+              "windowsCoManagement",
+              "appleUserEnrollment",
+              "appleUserEnrollmentWithServiceAccount"
+            ],
+            "example": "windowsAzureADJoin"
+          },
+          "joinType": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "azureADJoined",
+              "azureADRegistered",
+              "hybridAzureADJoined"
+            ],
+            "example": "azureADJoined"
+          },
+          "enrolledDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-01-15T10:00:00Z"
+          },
+          "lastSyncDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-06-01T07:50:00Z"
+          },
+          "emailAddress": {
+            "type": "string",
+            "format": "email",
+            "description": "Primary user email.",
+            "example": "alice.johnson@contoso.com"
+          },
+          "userDisplayName": {
+            "type": "string",
+            "example": "Alice Johnson"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Entra user object ID of the primary enrolled user.",
+            "example": "aaaaaaaa-0000-0001-0000-000000000001"
+          },
+          "userPrincipalName": {
+            "type": "string",
+            "example": "alice.johnson@contoso.com"
+          },
+          "manufacturer": {
+            "type": "string",
+            "example": "Dell Inc."
+          },
+          "model": {
+            "type": "string",
+            "example": "Latitude 5540"
+          },
+          "serialNumber": {
+            "type": "string",
+            "example": "CNTO5540001"
+          },
+          "imei": {
+            "type": "string",
+            "nullable": true,
+            "description": "IMEI for cellular-capable devices.",
+            "example": null
+          },
+          "meid": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "ipAddressV4": {
+            "type": "string",
+            "description": "Primary IPv4 address reported at last Intune sync.",
+            "example": "10.10.1.101"
+          },
+          "subnetAddress": {
+            "type": "string",
+            "description": "Subnet of the primary NIC.",
+            "example": "10.10.1.0"
+          },
+          "ethernetMacAddress": {
+            "type": "string",
+            "description": "Ethernet (wired) NIC MAC address.",
+            "example": "00:1A:2B:3C:4D:01"
+          },
+          "wiFiMacAddress": {
+            "type": "string",
+            "description": "Wi-Fi NIC MAC address.",
+            "example": "00:1A:2B:3C:4D:A1"
+          },
+          "totalStorageSpaceInBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total disk capacity in bytes.",
+            "example": 512110190592
+          },
+          "freeStorageSpaceInBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Available disk space in bytes.",
+            "example": 214748364800
+          },
+          "physicalMemoryInBytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total physical RAM in bytes.",
+            "example": 17179869184
+          },
+          "isEncrypted": {
+            "type": "boolean",
+            "description": "Whether disk encryption (BitLocker/FileVault) is enabled.",
+            "example": true
+          },
+          "isSupervised": {
+            "type": "boolean",
+            "description": "iOS/macOS supervised mode.",
+            "example": false
+          },
+          "jailBroken": {
+            "type": "string",
+            "enum": [
+              "True",
+              "False",
+              "Unknown"
+            ],
+            "description": "Rooted or jailbroken status (string, not boolean).",
+            "example": "False"
+          },
+          "azureADRegistered": {
+            "type": "boolean",
+            "example": true
+          },
+          "activationLockBypassCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "iOS Activation Lock bypass code (null if not applicable).",
+            "example": null
+          },
+          "remoteAssistanceSessionUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "hardwareInformation": {
+            "type": "object",
+            "description": "Extended hardware detail collected by Intune agent.",
+            "properties": {
+              "serialNumber": {
+                "type": "string",
+                "example": "CNTO5540001"
+              },
+              "totalStorageSpace": {
+                "type": "integer",
+                "format": "int64",
+                "example": 512110190592
+              },
+              "freeStorageSpace": {
+                "type": "integer",
+                "format": "int64",
+                "example": 214748364800
+              },
+              "imei": {
+                "type": "string",
+                "nullable": true,
+                "example": null
+              },
+              "meid": {
+                "type": "string",
+                "nullable": true,
+                "example": null
+              },
+              "manufacturer": {
+                "type": "string",
+                "example": "Dell Inc."
+              },
+              "model": {
+                "type": "string",
+                "example": "Latitude 5540"
+              },
+              "phoneNumber": {
+                "type": "string",
+                "nullable": true,
+                "example": null
+              },
+              "subscriberCarrier": {
+                "type": "string",
+                "nullable": true,
+                "example": null
+              },
+              "cellularTechnology": {
+                "type": "string",
+                "nullable": true,
+                "example": null
+              },
+              "wifiMac": {
+                "type": "string",
+                "example": "00:1A:2B:3C:4D:A1"
+              },
+              "operatingSystemLanguage": {
+                "type": "string",
+                "example": "en-US"
+              },
+              "isSupervised": {
+                "type": "boolean",
+                "example": false
+              },
+              "isEncrypted": {
+                "type": "boolean",
+                "example": true
+              },
+              "batterySerialNumber": {
+                "type": "string",
+                "nullable": true,
+                "example": null
+              },
+              "batteryHealthPercentage": {
+                "type": "integer",
+                "nullable": true,
+                "example": null
+              },
+              "tpmSpecificationVersion": {
+                "type": "string",
+                "example": "2.0"
+              },
+              "operatingSystemEdition": {
+                "type": "string",
+                "example": "Professional"
+              },
+              "deviceFullQualifiedDomainName": {
+                "type": "string",
+                "example": "DESKTOP-CONTOSO01.corp.contoso.com"
+              },
+              "deviceGuardVirtualizationBasedSecurityHardwareRequirementState": {
+                "type": "string",
+                "example": "meetsRequirements"
+              },
+              "deviceGuardSecureBootState": {
+                "type": "string",
+                "example": "enabled"
+              }
+            }
+          },
+          "deviceActionResults": {
+            "type": "array",
+            "description": "Results of remote actions (wipe, lock, sync, etc.) sent to this device.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "actionName": {
+                  "type": "string",
+                  "example": "syncDevice"
+                },
+                "actionState": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "canceled",
+                    "active",
+                    "done",
+                    "failed",
+                    "notSupported"
+                  ],
+                  "example": "done"
+                },
+                "startDateTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-06-01T07:00:00Z"
+                },
+                "lastUpdatedDateTime": {
+                  "type": "string",
+                  "format": "date-time",
+                  "example": "2024-06-01T07:01:00Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CompliancePolicy": {
+        "type": "object",
+        "description": "Intune device compliance policy \u2014 defines the rules (OS version, encryption, password, etc.) a device must meet.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "ffffffff-0001-0001-0001-000000000001"
+          },
+          "@odata.type": {
+            "type": "string",
+            "description": "Concrete policy type.",
+            "example": "#microsoft.graph.windows10CompliancePolicy"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Windows 10/11 Baseline Compliance"
+          },
+          "description": {
+            "type": "string",
+            "example": "Requires BitLocker, current OS build, and compliant firewall."
+          },
+          "platformType": {
+            "type": "string",
+            "enum": [
+              "android",
+              "androidForWork",
+              "iOS",
+              "macOS",
+              "windowsPhone81",
+              "windows81AndLater",
+              "windows10AndLater",
+              "all"
+            ],
+            "example": "windows10AndLater"
+          },
+          "createdDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2022-09-01T08:00:00Z"
+          },
+          "lastModifiedDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-03-15T10:00:00Z"
+          },
+          "settingsCount": {
+            "type": "integer",
+            "description": "Number of compliance settings configured in this policy.",
+            "example": 8
+          },
+          "version": {
+            "type": "integer",
+            "example": 5
+          },
+          "scheduledActionsForRule": {
+            "type": "array",
+            "description": "Actions taken automatically when a device becomes non-compliant.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "ruleName": {
+                  "type": "string",
+                  "example": "DefaultComplianceRule"
+                },
+                "scheduledActionConfigurations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "actionType": {
+                        "type": "string",
+                        "enum": [
+                          "noAction",
+                          "notification",
+                          "block",
+                          "retire",
+                          "wipe",
+                          "removeResourceAccessProfiles",
+                          "pushNotification",
+                          "remoteLock"
+                        ],
+                        "example": "notification"
+                      },
+                      "gracePeriodHours": {
+                        "type": "integer",
+                        "example": 0
+                      },
+                      "notificationTemplateId": {
+                        "type": "string",
+                        "example": ""
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "DeviceConfiguration": {
+        "type": "object",
+        "description": "Intune device configuration profile \u2014 pushes settings (Wi-Fi, VPN, certificates, restrictions) to enrolled devices.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "gggggggg-0001-0001-0001-000000000001"
+          },
+          "@odata.type": {
+            "type": "string",
+            "description": "Concrete configuration type.",
+            "example": "#microsoft.graph.windows10GeneralConfiguration"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Windows Security Baseline"
+          },
+          "description": {
+            "type": "string",
+            "example": "Enforces Windows Defender, firewall rules, and UAC settings."
+          },
+          "platformApplicability": {
+            "type": "string",
+            "example": "windows10AndLater"
+          },
+          "createdDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2022-10-01T09:00:00Z"
+          },
+          "lastModifiedDateTime": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-04-01T11:00:00Z"
+          },
+          "version": {
+            "type": "integer",
+            "example": 3
+          },
+          "supportsScopeTags": {
+            "type": "boolean",
+            "example": true
+          },
+          "deviceManagementApplicabilityRuleOsEdition": {
+            "type": "object",
+            "nullable": true
+          },
+          "deviceManagementApplicabilityRuleOsVersion": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "DeviceCompliancePolicyState": {
+        "type": "object",
+        "description": "Compliance result of one policy applied to one device \u2014 which settings passed and which failed.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ffffffff-0001-0001-0001-000000000001"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Windows 10/11 Baseline Compliance"
+          },
+          "version": {
+            "type": "integer",
+            "example": 5
+          },
+          "platformType": {
+            "type": "string",
+            "example": "windows10AndLater"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "notApplicable",
+              "compliant",
+              "remediated",
+              "nonCompliant",
+              "error",
+              "conflict",
+              "notAssigned"
+            ],
+            "example": "compliant"
+          },
+          "settingCount": {
+            "type": "integer",
+            "example": 8
+          },
+          "settingStates": {
+            "type": "array",
+            "description": "Per-setting pass/fail detail.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "setting": {
+                  "type": "string",
+                  "example": "require_bitlocker"
+                },
+                "settingName": {
+                  "type": "string",
+                  "example": "Require BitLocker"
+                },
+                "instanceDisplayName": {
+                  "type": "string",
+                  "example": "Require BitLocker"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "unknown",
+                    "notApplicable",
+                    "compliant",
+                    "remediated",
+                    "nonCompliant",
+                    "error",
+                    "conflict",
+                    "notAssigned"
+                  ],
+                  "example": "compliant"
+                },
+                "errorCode": {
+                  "type": "integer",
+                  "example": 0
+                },
+                "errorDescription": {
+                  "type": "string",
+                  "example": ""
+                },
+                "sources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "displayName": {
+                        "type": "string",
+                        "example": "Windows 10/11 Baseline Compliance"
+                      },
+                      "sourceId": {
+                        "type": "string",
+                        "example": "ffffffff-0001-0001-0001-000000000001"
+                      },
+                      "sourceType": {
+                        "type": "string",
+                        "example": "deviceCompliancePolicy"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/v1.0/deviceManagement/managedDevices": {
+      "get": {
+        "operationId": "listManagedDevices",
+        "summary": "List all Intune-enrolled devices",
+        "description": "Returns all devices enrolled in Intune with full hardware inventory: IP address, MAC address (Ethernet + Wi-Fi), serial number, storage, RAM, encryption state, and the primary enrolled user. azureADDeviceId links each record to Entra ID (device.deviceId) and Defender (machine.aadDeviceId).",
+        "tags": [
+          "Managed Devices"
+        ],
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "operatingSystem eq 'Windows' and complianceState eq 'compliant'"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "id,azureADDeviceId,deviceName,ipAddressV4,ethernetMacAddress,wiFiMacAddress,serialNumber,complianceState"
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 1000
+            },
+            "example": 100
+          },
+          {
+            "name": "$orderby",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "lastSyncDateTime desc"
+          },
+          {
+            "name": "$count",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of managed devices.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ManagedDevice"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#deviceManagement/managedDevices",
+                  "@odata.count": 2,
+                  "value": [
+                    {
+                      "id": "eeeeeeee-0001-0001-0001-000000000001",
+                      "azureADDeviceId": "eab73519-780d-4d43-be6d-a4a89af2a001",
+                      "deviceName": "DESKTOP-CONTOSO01",
+                      "operatingSystem": "Windows",
+                      "osVersion": "10.0.19045.3803",
+                      "complianceState": "compliant",
+                      "managementAgent": "mdm",
+                      "managedDeviceOwnerType": "company",
+                      "joinType": "azureADJoined",
+                      "enrolledDateTime": "2023-01-15T10:00:00Z",
+                      "lastSyncDateTime": "2024-06-01T07:50:00Z",
+                      "emailAddress": "alice.johnson@contoso.com",
+                      "userDisplayName": "Alice Johnson",
+                      "userId": "aaaaaaaa-0000-0001-0000-000000000001",
+                      "userPrincipalName": "alice.johnson@contoso.com",
+                      "manufacturer": "Dell Inc.",
+                      "model": "Latitude 5540",
+                      "serialNumber": "CNTO5540001",
+                      "ipAddressV4": "10.10.1.101",
+                      "subnetAddress": "10.10.1.0",
+                      "ethernetMacAddress": "00:1A:2B:3C:4D:01",
+                      "wiFiMacAddress": "00:1A:2B:3C:4D:A1",
+                      "totalStorageSpaceInBytes": 512110190592,
+                      "freeStorageSpaceInBytes": 214748364800,
+                      "physicalMemoryInBytes": 17179869184,
+                      "isEncrypted": true,
+                      "isSupervised": false,
+                      "jailBroken": "False",
+                      "azureADRegistered": true,
+                      "imei": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/deviceManagement/managedDevices/{managedDeviceId}": {
+      "get": {
+        "operationId": "getManagedDevice",
+        "summary": "Get a single managed device with full hardware detail",
+        "description": "Returns one Intune-enrolled device including the full hardwareInformation block (FQDN, TPM version, Secure Boot, OS edition, battery) and all remote deviceActionResults.",
+        "tags": [
+          "Managed Devices"
+        ],
+        "parameters": [
+          {
+            "name": "managedDeviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Intune managed device ID (not the Entra device.id).",
+            "example": "eeeeeeee-0001-0001-0001-000000000001"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Single managed device.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedDevice"
+                },
+                "example": {
+                  "id": "eeeeeeee-0001-0001-0001-000000000001",
+                  "azureADDeviceId": "eab73519-780d-4d43-be6d-a4a89af2a001",
+                  "deviceName": "DESKTOP-CONTOSO01",
+                  "operatingSystem": "Windows",
+                  "osVersion": "10.0.19045.3803",
+                  "osBuildNumber": "19045.3803",
+                  "complianceState": "compliant",
+                  "managementAgent": "mdm",
+                  "managedDeviceOwnerType": "company",
+                  "joinType": "azureADJoined",
+                  "enrolledDateTime": "2023-01-15T10:00:00Z",
+                  "lastSyncDateTime": "2024-06-01T07:50:00Z",
+                  "emailAddress": "alice.johnson@contoso.com",
+                  "userDisplayName": "Alice Johnson",
+                  "userId": "aaaaaaaa-0000-0001-0000-000000000001",
+                  "userPrincipalName": "alice.johnson@contoso.com",
+                  "manufacturer": "Dell Inc.",
+                  "model": "Latitude 5540",
+                  "serialNumber": "CNTO5540001",
+                  "imei": null,
+                  "ipAddressV4": "10.10.1.101",
+                  "subnetAddress": "10.10.1.0",
+                  "ethernetMacAddress": "00:1A:2B:3C:4D:01",
+                  "wiFiMacAddress": "00:1A:2B:3C:4D:A1",
+                  "totalStorageSpaceInBytes": 512110190592,
+                  "freeStorageSpaceInBytes": 214748364800,
+                  "physicalMemoryInBytes": 17179869184,
+                  "isEncrypted": true,
+                  "isSupervised": false,
+                  "jailBroken": "False",
+                  "azureADRegistered": true,
+                  "hardwareInformation": {
+                    "serialNumber": "CNTO5540001",
+                    "totalStorageSpace": 512110190592,
+                    "freeStorageSpace": 214748364800,
+                    "manufacturer": "Dell Inc.",
+                    "model": "Latitude 5540",
+                    "wifiMac": "00:1A:2B:3C:4D:A1",
+                    "operatingSystemLanguage": "en-US",
+                    "isSupervised": false,
+                    "isEncrypted": true,
+                    "tpmSpecificationVersion": "2.0",
+                    "operatingSystemEdition": "Professional",
+                    "deviceFullQualifiedDomainName": "DESKTOP-CONTOSO01.corp.contoso.com",
+                    "deviceGuardSecureBootState": "enabled",
+                    "deviceGuardVirtualizationBasedSecurityHardwareRequirementState": "meetsRequirements"
+                  },
+                  "deviceActionResults": [
+                    {
+                      "actionName": "syncDevice",
+                      "actionState": "done",
+                      "startDateTime": "2024-06-01T07:00:00Z",
+                      "lastUpdatedDateTime": "2024-06-01T07:01:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found."
+          }
+        }
+      }
+    },
+    "/v1.0/deviceManagement/deviceCompliancePolicies": {
+      "get": {
+        "operationId": "listCompliancePolicies",
+        "summary": "List device compliance policies",
+        "description": "Returns all Intune compliance policies across platforms (Windows, iOS, Android, macOS). Each policy defines the rules \u2014 OS version floor, encryption required, password complexity, firewall state \u2014 that enrolled devices must meet. Non-compliant devices trigger scheduledActionsForRule (notifications, blocks, or wipes).",
+        "tags": [
+          "Compliance"
+        ],
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "example": "platformType eq 'windows10AndLater'"
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 50
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of compliance policies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CompliancePolicy"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#deviceManagement/deviceCompliancePolicies",
+                  "@odata.count": 2,
+                  "value": [
+                    {
+                      "id": "ffffffff-0001-0001-0001-000000000001",
+                      "@odata.type": "#microsoft.graph.windows10CompliancePolicy",
+                      "displayName": "Windows 10/11 Baseline Compliance",
+                      "description": "Requires BitLocker, current OS build, compliant firewall, and no jailbreak.",
+                      "platformType": "windows10AndLater",
+                      "createdDateTime": "2022-09-01T08:00:00Z",
+                      "lastModifiedDateTime": "2024-03-15T10:00:00Z",
+                      "settingsCount": 8,
+                      "version": 5,
+                      "scheduledActionsForRule": [
+                        {
+                          "ruleName": "DefaultComplianceRule",
+                          "scheduledActionConfigurations": [
+                            {
+                              "actionType": "notification",
+                              "gracePeriodHours": 0,
+                              "notificationTemplateId": ""
+                            },
+                            {
+                              "actionType": "block",
+                              "gracePeriodHours": 72,
+                              "notificationTemplateId": ""
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ffffffff-0002-0002-0002-000000000002",
+                      "@odata.type": "#microsoft.graph.iosCompliancePolicy",
+                      "displayName": "iOS Mobile Device Compliance",
+                      "description": "Requires iOS 16+, passcode, and no jailbreak.",
+                      "platformType": "iOS",
+                      "createdDateTime": "2023-01-10T09:00:00Z",
+                      "lastModifiedDateTime": "2024-02-01T08:00:00Z",
+                      "settingsCount": 5,
+                      "version": 2,
+                      "scheduledActionsForRule": [
+                        {
+                          "ruleName": "DefaultComplianceRule",
+                          "scheduledActionConfigurations": [
+                            {
+                              "actionType": "notification",
+                              "gracePeriodHours": 0,
+                              "notificationTemplateId": ""
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/deviceManagement/deviceConfigurations": {
+      "get": {
+        "operationId": "listDeviceConfigurations",
+        "summary": "List device configuration profiles",
+        "description": "Returns all Intune configuration profiles that push settings to enrolled devices \u2014 Wi-Fi passwords, VPN configs, certificate deployments, Windows Defender settings, firewall rules, and OS restriction policies.",
+        "tags": [
+          "Configuration"
+        ],
+        "parameters": [
+          {
+            "name": "$filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$select",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "$top",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 50
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OData list of device configuration profiles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/DeviceConfiguration"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#deviceManagement/deviceConfigurations",
+                  "@odata.count": 3,
+                  "value": [
+                    {
+                      "id": "gggggggg-0001-0001-0001-000000000001",
+                      "@odata.type": "#microsoft.graph.windows10GeneralConfiguration",
+                      "displayName": "Windows Security Baseline",
+                      "description": "Enforces Windows Defender AV, firewall, UAC, and disables USB storage.",
+                      "createdDateTime": "2022-10-01T09:00:00Z",
+                      "lastModifiedDateTime": "2024-04-01T11:00:00Z",
+                      "version": 3,
+                      "supportsScopeTags": true
+                    },
+                    {
+                      "id": "gggggggg-0002-0002-0002-000000000002",
+                      "@odata.type": "#microsoft.graph.windowsWifiConfiguration",
+                      "displayName": "Corporate Wi-Fi Profile",
+                      "description": "Deploys SSID and WPA2-Enterprise settings for corp-wifi.",
+                      "createdDateTime": "2023-03-01T08:00:00Z",
+                      "lastModifiedDateTime": "2024-01-10T09:00:00Z",
+                      "version": 1,
+                      "supportsScopeTags": true
+                    },
+                    {
+                      "id": "gggggggg-0003-0003-0003-000000000003",
+                      "@odata.type": "#microsoft.graph.windowsVpnConfiguration",
+                      "displayName": "Corporate VPN Profile",
+                      "description": "Always-on VPN configuration for remote workers.",
+                      "createdDateTime": "2023-06-01T10:00:00Z",
+                      "lastModifiedDateTime": "2024-05-01T12:00:00Z",
+                      "version": 2,
+                      "supportsScopeTags": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token."
+          }
+        }
+      }
+    },
+    "/v1.0/deviceManagement/managedDevices/{managedDeviceId}/deviceCompliancePolicyStates": {
+      "get": {
+        "operationId": "getDeviceCompliancePolicyStates",
+        "summary": "Get per-device compliance policy results",
+        "description": "Returns the compliance evaluation result for every policy applied to this device, broken down per setting \u2014 which passed, which failed, and what the error code is. Use this to diagnose why a specific device is marked non-compliant.",
+        "tags": [
+          "Compliance"
+        ],
+        "parameters": [
+          {
+            "name": "managedDeviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": "eeeeeeee-0001-0001-0001-000000000001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-policy compliance state for the device.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ODataListResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/DeviceCompliancePolicyState"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#deviceManagement/managedDevices('eeeeeeee-0001-0001-0001-000000000001')/deviceCompliancePolicyStates",
+                  "value": [
+                    {
+                      "id": "ffffffff-0001-0001-0001-000000000001",
+                      "displayName": "Windows 10/11 Baseline Compliance",
+                      "version": 5,
+                      "platformType": "windows10AndLater",
+                      "state": "compliant",
+                      "settingCount": 8,
+                      "settingStates": [
+                        {
+                          "setting": "require_bitlocker",
+                          "settingName": "Require BitLocker",
+                          "state": "compliant",
+                          "errorCode": 0,
+                          "errorDescription": "",
+                          "sources": [
+                            {
+                              "displayName": "Windows 10/11 Baseline Compliance",
+                              "sourceId": "ffffffff-0001-0001-0001-000000000001",
+                              "sourceType": "deviceCompliancePolicy"
+                            }
+                          ]
+                        },
+                        {
+                          "setting": "minimum_os_version",
+                          "settingName": "Minimum OS Version",
+                          "state": "compliant",
+                          "errorCode": 0,
+                          "errorDescription": "",
+                          "sources": [
+                            {
+                              "displayName": "Windows 10/11 Baseline Compliance",
+                              "sourceId": "ffffffff-0001-0001-0001-000000000001",
+                              "sourceType": "deviceCompliancePolicy"
+                            }
+                          ]
+                        },
+                        {
+                          "setting": "require_secure_boot",
+                          "settingName": "Require Secure Boot",
+                          "state": "compliant",
+                          "errorCode": 0,
+                          "errorDescription": "",
+                          "sources": [
+                            {
+                              "displayName": "Windows 10/11 Baseline Compliance",
+                              "sourceId": "ffffffff-0001-0001-0001-000000000001",
+                              "sourceType": "deviceCompliancePolicy"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found."
+          }
+        }
+      }
+    },
+    "/v1.0/deviceManagement/managedDevices/{managedDeviceId}/users": {
+      "get": {
+        "operationId": "getManagedDeviceUsers",
+        "summary": "List users associated with a managed device",
+        "description": "Returns the user(s) enrolled on this Intune-managed device. The user id equals Entra user.id and Entra device registeredUsers. Note: Groups in Intune are Entra security groups — use GET /v1.0/groups from the Entra ID API.",
+        "tags": ["Managed Devices"],
+        "parameters": [
+          { "name": "managedDeviceId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" }, "example": "eeeeeeee-0001-0001-0001-000000000001" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users associated with the managed device.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "@odata.context": { "type": "string" },
+                    "value": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id":                      { "type": "string", "format": "uuid", "description": "Entra user object ID — equals Entra user.id.", "example": "aaaaaaaa-0000-0001-0000-000000000001" },
+                          "displayName":             { "type": "string", "example": "Alice Johnson" },
+                          "userPrincipalName":       { "type": "string", "example": "alice.johnson@contoso.com" },
+                          "mail":                    { "type": "string", "format": "email" },
+                          "givenName":               { "type": "string" },
+                          "surname":                 { "type": "string" },
+                          "jobTitle":                { "type": "string" },
+                          "department":              { "type": "string" },
+                          "accountEnabled":          { "type": "boolean" },
+                          "userType":                { "type": "string", "enum": ["Member", "Guest"] },
+                          "onPremisesSamAccountName":{ "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Device not found." }
+        }
+      }
+    }
+  }
+}

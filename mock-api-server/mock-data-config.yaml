@@ -1,0 +1,284 @@
+# Mock Data Configuration
+# ========================
+# Controls how many items are generated for each endpoint response.
+# Sections are keyed by the api-slug (same as the folder name).
+#
+# Each endpoint entry under `endpoints` maps to a route path as it appears
+# in the OpenAPI spec (e.g. /api/v1/organizations).
+#
+# Supported keys per endpoint:
+#   count:       number of top-level items to generate (for array responses)
+#   seed:        optional integer — makes generation deterministic / repeatable
+#   fields:      override specific field values for every generated item
+#                (use {index} as a placeholder — replaced with 0-based item number)
+#   nested:      for responses where a top-level object wraps an array (e.g. {value: [...]})
+#                set array_key to the field name that holds the list
+#
+# Unrecognised slugs or endpoints are silently ignored (falls back to schema-derived defaults).
+
+# ---------------------------------------------------------------------------
+# Cisco Meraki Dashboard API  (port 9090)
+# ---------------------------------------------------------------------------
+cisco-meraki-dashboard-api:
+  endpoints:
+
+    /api/v1/organizations:
+      count: 3
+      fields:
+        name: "Acme Corp {index}"
+        licensing:
+          model: co-term
+
+    /api/v1/organizations/{organizationId}/networks:
+      count: 4
+      fields:
+        name: "Office Network {index}"
+        timeZone: America/Los_Angeles
+        productTypes: [appliance, switch, wireless]
+        tags: [production]
+
+    /api/v1/organizations/{organizationId}/networks/{networkId}/clients:
+      count: 10
+      fields:
+        status: Online
+        vlan: "10"
+        manufacturer: Apple
+
+# ---------------------------------------------------------------------------
+# Microsoft Defender for Endpoint API  (port 9091)
+# ---------------------------------------------------------------------------
+microsoft-defender-for-endpoint-api:
+  endpoints:
+
+    /api/machines:
+      count: 5
+      nested:
+        array_key: value        # response is {"value": [...], "@odata.count": N}
+        count_key: "@odata.count"
+      fields:
+        osPlatform: Windows10
+        healthStatus: Active
+        riskScore: Medium
+        exposureLevel: Low
+        rbacGroupName: Engineering
+
+    /api/machines/{id}/logonusers:
+      count: 2
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        isDomainAdmin: false
+        logonTypes: Interactive
+
+    /api/vulnerabilities/machinesVulnerabilities:
+      count: 8
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        severity: High
+        productVendor: Microsoft
+
+# ---------------------------------------------------------------------------
+# Verkada API  (port 9092)
+# ---------------------------------------------------------------------------
+verkada-api:
+  endpoints:
+
+    /cameras/v1/devices:
+      count: 6
+      nested:
+        array_key: cameras
+      fields:
+        status: online
+        retention_days: 30
+        model: CD52
+
+    /cameras/v1/alerts:
+      count: 12
+      nested:
+        array_key: alerts
+      fields:
+        notification_type: motion
+        objects: [person]
+
+    /alarms/v1/sites:
+      count: 4
+      nested:
+        array_key: sites
+      fields:
+        site_security_level: high
+        site_state: armed
+
+    /guest/v1/sites:
+      count: 4
+      nested:
+        array_key: sites
+
+    /alarms/v1/devices:
+      count: 8
+      nested:
+        array_key: alarm_devices
+      fields:
+        status: normal
+        device_type: door_contact
+
+# ---------------------------------------------------------------------------
+# Microsoft Intune API  (port 9095)
+# ---------------------------------------------------------------------------
+microsoft-intune-api:
+  endpoints:
+
+    /v1.0/deviceManagement/managedDevices:
+      count: 8
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        operatingSystem: Windows
+        complianceState: compliant
+        managementAgent: mdm
+        managedDeviceOwnerType: company
+        joinType: azureADJoined
+        isEncrypted: true
+        jailBroken: "False"
+
+    /v1.0/deviceManagement/deviceCompliancePolicies:
+      count: 4
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        platformType: windows10AndLater
+
+    /v1.0/deviceManagement/deviceConfigurations:
+      count: 5
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+
+    /v1.0/deviceManagement/managedDevices/{managedDeviceId}/deviceCompliancePolicyStates:
+      count: 3
+      nested:
+        array_key: value
+
+# ---------------------------------------------------------------------------
+# Microsoft Entra ID API  (port 9094)
+# ---------------------------------------------------------------------------
+microsoft-entra-id-api:
+  endpoints:
+
+    /v1.0/users:
+      count: 6
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        accountEnabled: true
+        userType: Member
+        department: "Information Security"
+        onPremisesSyncEnabled: true
+
+    /v1.0/devices:
+      count: 8
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        operatingSystem: Windows
+        trustType: AzureAd
+        isCompliant: true
+        isManaged: true
+        deviceOwnership: company
+        managementType: mdm
+
+    /v1.0/groups:
+      count: 5
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        securityEnabled: true
+        onPremisesSyncEnabled: true
+
+    /v1.0/servicePrincipals:
+      count: 5
+      nested:
+        array_key: value
+        count_key: "@odata.count"
+      fields:
+        accountEnabled: true
+
+# ---------------------------------------------------------------------------
+# Crestron XiO Cloud API  (port 9093)
+# ---------------------------------------------------------------------------
+crestron-xio-cloud-api:
+  endpoints:
+
+    /api/v1/device/accountid/{accountid}/devices:
+      count: 8
+      fields:
+        device-status: online
+        device-model: "TSW-1070"
+        device-category: "Touch Screen"
+        nic-1-ip-address: "10.10.{index}.101"
+        nic-1-mac-address: "00.11.22.aa.bb.{index}"
+        firmware-version: "2.004.0084"
+
+    /api/v1/device/accountid/{accountid}/devicecid/{devicecid}/status:
+      count: 1
+      fields:
+        device-status: online
+        nic-1-ip-address: "10.10.1.101"
+        nic-1-subnet-mask: "255.255.255.0"
+        nic-1-def-router: "10.10.1.1"
+        nic-1-mac-address: "00.11.22.aa.bb.01"
+        nic-1-dns-servers: "10.10.1.10,10.10.1.11"
+        status-host-name: "TSW-1070-CONF-A"
+        status-domain-name: "corp.example.com"
+
+    /api/v2/device/accountid/{accountid}/devicecid/{devicecid}/status:
+      count: 1
+      fields:
+        device-status: online
+        nic-1-ip-address: "10.10.1.101"
+        nic-1-mac-address: "00.11.22.aa.bb.01"
+        status-host-name: "TSW-1070-CONF-A"
+
+    /api/v2/device/accountid/{accountid}/devicestatus:
+      count: 5
+      nested:
+        array_key: devices
+      fields:
+        device-status: online
+        nic-1-ip-address: "10.10.2.{index}"
+        nic-1-mac-address: "00.11.22.bb.cc.{index}"
+
+    /api/v2/device/accountid/{accountId}/pageno/{pagenum}/pagesize/{pagesize}/status:
+      count: 10
+      nested:
+        array_key: devices
+      fields:
+        device-status: online
+        nic-1-ip-address: "10.10.3.{index}"
+        nic-1-mac-address: "00.11.22.cc.dd.{index}"
+
+    /api/v2/device/accountid/{accountId}/devicemodel/{deviceModel}/pageno/{pagenum}/pagesize/{pagesize}/status:
+      count: 6
+      nested:
+        array_key: devices
+      fields:
+        device-status: online
+        device-model: "TSW-1070"
+        nic-1-ip-address: "10.10.4.{index}"
+        nic-1-mac-address: "00.11.22.dd.ee.{index}"
+
+    /api/v1/group/accountid/{accountid}/groupid/{groupid}/devices:
+      count: 6
+      nested:
+        array_key: devices
+      fields:
+        device-status: online
+        nic-1-ip-address: "10.10.5.{index}"
+        nic-1-mac-address: "00.11.22.ee.ff.{index}"

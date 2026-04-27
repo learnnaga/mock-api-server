@@ -1,0 +1,106 @@
+{
+  "mocks": [
+    {
+      "slug": "cisco-meraki-dashboard-api",
+      "title": "Cisco Meraki Dashboard API",
+      "version": "2.0.0",
+      "port": 9090,
+      "dir": "cisco-meraki-dashboard-api",
+      "auth_enforce": true,
+      "auth_schemes": [
+        {
+          "name": "meraki_api_key",
+          "type": "apiKey",
+          "in": "header",
+          "param_name": "X-Cisco-Meraki-API-Key",
+          "mock_value": "mock-meraki-api-key-key"
+        }
+      ]
+    },
+    {
+      "slug": "microsoft-defender-for-endpoint-api",
+      "title": "Microsoft Defender for Endpoint API",
+      "version": "2.0.0",
+      "port": 9091,
+      "dir": "microsoft-defender-for-endpoint-api",
+      "auth_enforce": false,
+      "auth_schemes": [
+        {
+          "name": "oauth2",
+          "type": "oauth2",
+          "mock_value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiAibW9jay1vYXV0aDIiLCAibW9jayI6IHRydWUsICJpc3MiOiAibW9jay1pZHAifQ.mock-sig",
+          "in": null,
+          "param_name": null
+        }
+      ]
+    },
+    {
+      "slug": "verkada-api",
+      "title": "Verkada API",
+      "version": "1.0.0",
+      "port": 9092,
+      "dir": "verkada-api",
+      "auth_enforce": false,
+      "auth_schemes": [
+        {
+          "name": "ApiKey",
+          "type": "apiKey",
+          "in": "header",
+          "param_name": "x-api-key",
+          "mock_value": "mock-apikey-key"
+        }
+      ]
+    },
+    {
+      "slug": "crestron-xio-cloud-api",
+      "title": "Crestron XiO Cloud API",
+      "version": "2.0.0",
+      "port": 9093,
+      "dir": "crestron-xio-cloud-api",
+      "auth_enforce": false,
+      "auth_schemes": [
+        {
+          "name": "XiOSubscriptionKey",
+          "type": "apiKey",
+          "mock_value": "mock-xiosubscriptionkey-key",
+          "in": "header",
+          "param_name": "XiO-subscription-key"
+        }
+      ]
+    },
+    {
+      "slug": "microsoft-entra-id-api",
+      "title": "Microsoft Entra ID API",
+      "version": "1.0.0",
+      "port": 9094,
+      "dir": "microsoft-entra-id-api",
+      "auth_enforce": false,
+      "auth_schemes": [
+        {
+          "name": "EntraOAuth2",
+          "type": "oauth2",
+          "mock_value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiAibW9jay1FbnRyYU9BdXRoMiIsICJtb2NrIjogdHJ1ZSwgImlzcyI6ICJtb2NrLWlkcCJ9.mock-sig",
+          "in": null,
+          "param_name": null
+        }
+      ]
+    },
+    {
+      "slug": "microsoft-intune-api",
+      "title": "Microsoft Intune API",
+      "version": "1.0.0",
+      "port": 9095,
+      "dir": "microsoft-intune-api",
+      "auth_enforce": false,
+      "auth_schemes": [
+        {
+          "name": "IntuneOAuth2",
+          "type": "oauth2",
+          "mock_value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiAibW9jay1JbnR1bmVPQXV0aDIiLCAibW9jayI6IHRydWUsICJpc3MiOiAibW9jay1pZHAifQ.mock-sig",
+          "in": null,
+          "param_name": null
+        }
+      ]
+    }
+  ]
+}

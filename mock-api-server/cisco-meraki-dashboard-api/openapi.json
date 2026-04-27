@@ -1,0 +1,205 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Cisco Meraki Dashboard API",
+    "version": "2.0.0",
+    "description": "Cisco Meraki Dashboard API v2"
+  },
+  "servers": [
+    { "url": "http://localhost:9090" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "meraki_api_key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Cisco-Meraki-API-Key",
+        "description": "API key from Meraki Dashboard — mock value: mock-meraki-api-key-key"
+      }
+    }
+  },
+  "security": [{ "meraki_api_key": [] }],
+  "paths": {
+    "/api/v1/organizations": {
+      "get": {
+        "operationId": "getOrganizations",
+        "summary": "List the organizations that the user has privileges on",
+        "tags": ["Organizations"],
+        "security": [{ "meraki_api_key": [] }],
+        "parameters": [
+          { "name": "perPage", "in": "query", "schema": { "type": "integer" } },
+          { "name": "startingAfter", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of organizations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id":   { "type": "string" },
+                      "name": { "type": "string" },
+                      "url":  { "type": "string" },
+                      "api":  { "type": "object", "properties": { "enabled": { "type": "boolean" } } },
+                      "licensing": { "type": "object", "properties": { "model": { "type": "string" } } },
+                      "cloud": {
+                        "type": "object",
+                        "properties": {
+                          "region": { "type": "object", "properties": { "name": { "type": "string" } } }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "12345678901234567",
+                    "name": "Acme Corp",
+                    "url": "https://dashboard.meraki.com/o/12345678901234567/manage/organization/overview",
+                    "api": { "enabled": true },
+                    "licensing": { "model": "co-term" },
+                    "cloud": { "region": { "name": "North America" } }
+                  },
+                  {
+                    "id": "98765432109876543",
+                    "name": "Globex Industries",
+                    "url": "https://dashboard.meraki.com/o/98765432109876543/manage/organization/overview",
+                    "api": { "enabled": true },
+                    "licensing": { "model": "per-device" },
+                    "cloud": { "region": { "name": "Europe" } }
+                  }
+                ]
+              }
+            }
+          },
+          "401": { "description": "Unauthorized — missing or invalid API key" }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/networks": {
+      "get": {
+        "operationId": "getOrganizationNetworks",
+        "summary": "List the networks that the user has privileges on in an organization",
+        "tags": ["Networks"],
+        "security": [{ "meraki_api_key": [] }],
+        "parameters": [
+          { "name": "organizationId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "12345678901234567" },
+          { "name": "perPage", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of networks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id":             { "type": "string" },
+                      "organizationId": { "type": "string" },
+                      "name":           { "type": "string" },
+                      "productTypes":   { "type": "array", "items": { "type": "string" } },
+                      "timeZone":       { "type": "string" },
+                      "tags":           { "type": "array", "items": { "type": "string" } },
+                      "isBoundToConfigTemplate": { "type": "boolean" }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "N_12345678901234567",
+                    "organizationId": "12345678901234567",
+                    "name": "Main Office",
+                    "productTypes": ["appliance", "switch", "wireless"],
+                    "timeZone": "America/Los_Angeles",
+                    "tags": ["production"],
+                    "isBoundToConfigTemplate": false
+                  }
+                ]
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/networks/{networkId}/clients": {
+      "get": {
+        "operationId": "getNetworkClients",
+        "summary": "List the clients on a network",
+        "tags": ["Clients"],
+        "security": [{ "meraki_api_key": [] }],
+        "parameters": [
+          { "name": "organizationId", "in": "path", "required": true, "schema": { "type": "string" }, "example": "12345678901234567" },
+          { "name": "networkId",      "in": "path", "required": true, "schema": { "type": "string" }, "example": "N_12345678901234567" },
+          { "name": "perPage",   "in": "query", "schema": { "type": "integer" } },
+          { "name": "timespan",  "in": "query", "schema": { "type": "integer" }, "description": "Timespan in seconds to look back for clients" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of clients on the network",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id":          { "type": "string" },
+                      "mac":         { "type": "string" },
+                      "ip":          { "type": "string" },
+                      "description": { "type": "string" },
+                      "status":      { "type": "string", "enum": ["Online", "Offline"] },
+                      "manufacturer":{ "type": "string" },
+                      "os":          { "type": "string" },
+                      "user":        { "type": "string" },
+                      "vlan":        { "type": "string" },
+                      "ssid":        { "type": "string" },
+                      "switchport":  { "type": "string" },
+                      "usage": {
+                        "type": "object",
+                        "properties": {
+                          "sent":  { "type": "integer" },
+                          "recv":  { "type": "integer" },
+                          "total": { "type": "integer" }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "id": "k74272e", "mac": "00:11:22:33:44:55", "ip": "192.168.1.101",
+                    "description": "John-MacBook-Pro", "status": "Online",
+                    "manufacturer": "Apple", "os": "macOS", "user": "jsmith",
+                    "vlan": "10", "ssid": "Acme-Corporate",
+                    "usage": { "sent": 104857600, "recv": 524288000, "total": 629145600 }
+                  },
+                  {
+                    "id": "m83921f", "mac": "66:77:88:99:aa:bb", "ip": "192.168.1.102",
+                    "description": "Finance-PC-01", "status": "Online",
+                    "manufacturer": "Dell", "os": "Windows 11", "user": "agarcia",
+                    "vlan": "20", "switchport": "GigabitEthernet1/0/5",
+                    "usage": { "sent": 52428800, "recv": 209715200, "total": 262144000 }
+                  },
+                  {
+                    "id": "p91034g", "mac": "cc:dd:ee:ff:00:11", "ip": "192.168.1.150",
+                    "description": "Conference-Room-TV", "status": "Offline",
+                    "manufacturer": "Samsung", "os": "Tizen",
+                    "vlan": "30", "ssid": "Acme-IoT",
+                    "usage": { "sent": 1048576, "recv": 5242880, "total": 6291456 }
+                  }
+                ]
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    }
+  }
+}

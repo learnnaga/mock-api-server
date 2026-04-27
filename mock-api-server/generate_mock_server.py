@@ -114,6 +114,84 @@ def generate_example_value(schema: dict, spec: dict, depth: int = 0) -> Any:
 
 
 # ---------------------------------------------------------------------------
+# Data config helpers
+# ---------------------------------------------------------------------------
+
+def load_data_config(path: str) -> dict:
+    """Load mock-data-config.yaml. Returns empty dict if path is None or missing."""
+    if not path:
+        return {}
+    try:
+        import yaml
+    except ImportError:
+        print("WARNING: pyyaml not installed — data config ignored. pip install pyyaml")
+        return {}
+    try:
+        with open(path) as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+
+
+def _vary_item(base: Any, fields: dict, index: int) -> Any:
+    """
+    Deep-merge fields overrides into a copy of base, replacing {index} placeholders.
+    Nested dict values are recursively merged; list values are substituted directly.
+    """
+    import copy
+    result = copy.deepcopy(base) if isinstance(base, dict) else {}
+    for key, val in fields.items():
+        if isinstance(val, dict):
+            existing = result.get(key, {})
+            result[key] = _vary_item(existing if isinstance(existing, dict) else {}, val, index)
+        elif isinstance(val, list):
+            result[key] = [
+                v.replace("{index}", str(index)) if isinstance(v, str) else v
+                for v in val
+            ]
+        elif isinstance(val, str):
+            result[key] = val.replace("{index}", str(index))
+        else:
+            result[key] = val
+    return result
+
+
+def _expand_response(body: Any, endpoint_cfg: dict) -> Any:
+    """
+    Expand body to match endpoint_cfg from mock-data-config.yaml.
+
+    Keys used from endpoint_cfg:
+      count       — number of items to generate
+      fields      — overrides applied to every item ({index} → 0-based item number)
+      nested
+        array_key — body[array_key] is the list to expand
+        count_key — body[count_key] is set to count (e.g. "@odata.count")
+    """
+    import copy
+    count      = endpoint_cfg.get("count", 1)
+    fields     = endpoint_cfg.get("fields", {}) or {}
+    nested_cfg = endpoint_cfg.get("nested") or {}
+    array_key  = nested_cfg.get("array_key")
+    count_key  = nested_cfg.get("count_key")
+
+    if array_key and isinstance(body, dict):
+        original_list = body.get(array_key) or []
+        base_item     = original_list[0] if original_list else {}
+        result        = copy.deepcopy(body)
+        result[array_key] = [_vary_item(base_item, fields, i) for i in range(count)]
+        if count_key:
+            result[count_key] = count
+        return result
+
+    if isinstance(body, list):
+        base_item = body[0] if body else {}
+        return [_vary_item(base_item, fields, i) for i in range(count)]
+
+    # Scalar / plain object — can't expand meaningfully
+    return body
+
+
+# ---------------------------------------------------------------------------
 # Endpoint extraction
 # ---------------------------------------------------------------------------
 
@@ -536,6 +614,7 @@ def generate_server_code(
     spec: dict,
     selected_endpoints: Optional[List[str]] = None,
     port: int = 8080,
+    data_config: Optional[dict] = None,
 ) -> str:
     all_endpoints = extract_endpoints(spec)
 
@@ -555,6 +634,10 @@ def generate_server_code(
     schemes = extract_auth_schemes(spec)
     token_eps = extract_token_endpoints(schemes)
     token_paths = [te["flask_path"] for te in token_eps]
+
+    # Data config: endpoints section for this API slug
+    _slug = slugify(title)
+    _endpoint_configs: dict = (data_config or {}).get(_slug, {}).get("endpoints", {})
 
     lines = [
         "#!/usr/bin/env python3",
@@ -585,6 +668,11 @@ def generate_server_code(
         path      = ep["path"]
         operation = ep["operation"]
         body, status = build_mock_response(operation, spec)
+
+        # Apply data-config overrides (count, fields, nested) if present
+        ep_cfg = _endpoint_configs.get(path, {})
+        if ep_cfg:
+            body = _expand_response(body, ep_cfg)
 
         flask_path = path_to_flask_rule(base_path + path)
         op_id   = operation.get("operationId") or f"{method}_{path}"
@@ -868,8 +956,334 @@ curl -s -X POST '{base_url}/mock-control' \\
 
 
 # ---------------------------------------------------------------------------
+# Helm chart generator
+# ---------------------------------------------------------------------------
+
+def generate_helm_chart(
+    spec: dict,
+    out_dir: str,
+    port: int,
+    ingress_path: str,
+    ingress_class: str,
+) -> str:
+    """
+    Write a deployable Helm chart under <out_dir>/helm/<chart-name>/.
+
+    Layout:
+        helm/<chart-name>/
+          Chart.yaml
+          values.yaml
+          templates/
+            deployment.yaml
+            service.yaml
+            ingress.yaml
+
+    The ingress rewrites /<ingress_path>(/.*) → $1 so the Flask server
+    receives the original API paths (e.g. /api/v1/organizations), not
+    the prefixed ones (e.g. /meraki/api/v1/organizations).
+
+    Returns the helm chart directory path.
+    """
+    title      = spec.get("info", {}).get("title", "Mock API")
+    version    = spec.get("info", {}).get("version", "0.1.0")
+    chart_name = slugify(title)
+
+    # Normalise ingress_path — must start with / and not end with /
+    if not ingress_path.startswith("/"):
+        ingress_path = "/" + ingress_path
+    ingress_path = ingress_path.rstrip("/")
+
+    helm_dir = Path(out_dir) / "helm" / chart_name
+    tpl_dir  = helm_dir / "templates"
+    tpl_dir.mkdir(parents=True, exist_ok=True)
+
+    # ── Chart.yaml ──────────────────────────────────────────────────────────
+    chart_yaml = f"""\
+apiVersion: v2
+name: {chart_name}
+description: Mock server for {title}
+type: application
+version: 0.1.0
+appVersion: "{version}"
+"""
+
+    # ── values.yaml ─────────────────────────────────────────────────────────
+    values_yaml = f"""\
+# Default values for {chart_name} mock server.
+# Override with: helm install {chart_name} ./{chart_name} -f custom-values.yaml
+
+replicaCount: 1
+
+image:
+  repository: {chart_name}
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: {port}
+  targetPort: {port}
+
+ingress:
+  enabled: true
+  className: "{ingress_class}"
+  # Prefix path for this mock on the shared cluster ingress.
+  # All requests to <host>{ingress_path}/* are routed here and the
+  # prefix is stripped before reaching the Flask server.
+  path: "{ingress_path}"
+  host: "mock.local"
+  tls: []
+  # tls:
+  #   - secretName: mock-tls
+  #     hosts:
+  #       - mock.local
+
+resources: {{}}
+# resources:
+#   limits:
+#     cpu: 200m
+#     memory: 128Mi
+
+nodeSelector: {{}}
+tolerations: []
+affinity: {{}}
+"""
+
+    # ── templates/deployment.yaml ────────────────────────────────────────────
+    deployment_yaml = """\
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "CHART.fullname" . }}
+  labels:
+    {{- include "CHART.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "CHART.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "CHART.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /mock-auth-status
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /mock-auth-status
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+""".replace("CHART", chart_name)
+
+    # ── templates/service.yaml ───────────────────────────────────────────────
+    service_yaml = """\
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "CHART.fullname" . }}
+  labels:
+    {{- include "CHART.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "CHART.selectorLabels" . | nindent 4 }}
+""".replace("CHART", chart_name)
+
+    # ── templates/ingress.yaml ───────────────────────────────────────────────
+    # nginx rewrite-target strips the ingress prefix before the request
+    # reaches the Flask server.  The capture group ($2) preserves everything
+    # after the prefix, so:
+    #   /meraki/api/v1/organizations  →  /api/v1/organizations
+    #   /meraki/mock-auth-status      →  /mock-auth-status
+    ingress_yaml = """\
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "CHART.fullname" . }}
+  labels:
+    {{- include "CHART.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+    # Strip the ingress prefix so Flask receives the original API path.
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "CHART.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}
+""".replace("CHART", chart_name)
+
+    # ── templates/_helpers.tpl ───────────────────────────────────────────────
+    helpers_tpl = f"""\
+{{{{/*
+Expand the name of the chart.
+*/}}}}
+{{{{- define "{chart_name}.name" -}}}}
+{{{{- .Chart.Name | trunc 63 | trimSuffix "-" }}}}
+{{{{- end }}}}
+
+{{{{/*
+Create a default fully qualified app name.
+*/}}}}
+{{{{- define "{chart_name}.fullname" -}}}}
+{{{{- .Chart.Name | trunc 63 | trimSuffix "-" }}}}
+{{{{- end }}}}
+
+{{{{/*
+Common labels
+*/}}}}
+{{{{- define "{chart_name}.labels" -}}}}
+helm.sh/chart: {{{{ include "{chart_name}.name" . }}}}-{{{{ .Chart.Version }}}}
+{{{{ include "{chart_name}.selectorLabels" . }}}}
+app.kubernetes.io/managed-by: {{{{ .Release.Service }}}}
+{{{{- end }}}}
+
+{{{{/*
+Selector labels
+*/}}}}
+{{{{- define "{chart_name}.selectorLabels" -}}}}
+app.kubernetes.io/name: {{{{ include "{chart_name}.name" . }}}}
+app.kubernetes.io/instance: {{{{ .Release.Name }}}}
+{{{{- end }}}}
+"""
+
+    (helm_dir / "Chart.yaml").write_text(chart_yaml)
+    (helm_dir / "values.yaml").write_text(values_yaml)
+    (tpl_dir  / "deployment.yaml").write_text(deployment_yaml)
+    (tpl_dir  / "service.yaml").write_text(service_yaml)
+    (tpl_dir  / "ingress.yaml").write_text(ingress_yaml)
+    (tpl_dir  / "_helpers.tpl").write_text(helpers_tpl)
+
+    return str(helm_dir)
+
+
+def generate_dockerfile(out_dir: str, port: int) -> str:
+    """Write a minimal Dockerfile alongside mock_server.py. Returns the file path."""
+    dockerfile = f"""\
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY mock_server.py .
+EXPOSE {port}
+CMD ["python", "mock_server.py"]
+"""
+    path = Path(out_dir) / "Dockerfile"
+    path.write_text(dockerfile)
+    return str(path)
+
+
+# ---------------------------------------------------------------------------
 # Output directory builder
 # ---------------------------------------------------------------------------
+
+def _upsert_portal_config(
+    spec: dict,
+    out_dir: str,
+    dir_name: str,
+    port: int,
+    portal_root: str,
+) -> None:
+    """Create or update portal-config.json with an entry for this mock."""
+    config_path = Path(portal_root) / "portal-config.json"
+    if config_path.exists():
+        with open(config_path) as f:
+            config = json.load(f)
+    else:
+        config = {"mocks": []}
+
+    title   = spec.get("info", {}).get("title", "Mock API")
+    version = spec.get("info", {}).get("version", "1.0.0")
+    schemes = extract_auth_schemes(spec)
+
+    auth_scheme_list = []
+    for name, cfg in schemes.items():
+        entry = {"name": name, "type": cfg.get("type", ""), "mock_value": cfg.get("mock_value", "")}
+        if cfg.get("type") == "apiKey":
+            entry["in"]         = cfg.get("in", "header")
+            entry["param_name"] = cfg.get("name", name)
+        else:
+            entry["in"]         = None
+            entry["param_name"] = None
+        auth_scheme_list.append(entry)
+
+    new_entry = {
+        "slug":         dir_name,
+        "title":        title,
+        "version":      version,
+        "port":         port,
+        "dir":          dir_name,
+        "auth_enforce": False,
+        "auth_schemes": auth_scheme_list,
+    }
+
+    existing = config["mocks"]
+    idx = next((i for i, m in enumerate(existing) if m["slug"] == dir_name), None)
+    if idx is not None:
+        # Preserve auth_enforce from the existing entry (it may have been toggled manually)
+        new_entry["auth_enforce"] = existing[idx].get("auth_enforce", False)
+        existing[idx] = new_entry
+    else:
+        existing.append(new_entry)
+
+    tmp = config_path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(config, indent=2))
+    tmp.replace(config_path)
+
 
 def build_output_dir(
     spec: dict,
@@ -877,35 +1291,64 @@ def build_output_dir(
     selected_endpoints: Optional[List[str]],
     port: int,
     base_out: Optional[str],
+    k8s: bool = False,
+    k8s_only: bool = False,
+    ingress_path: Optional[str] = None,
+    ingress_class: str = "nginx",
+    data_config: Optional[dict] = None,
 ) -> str:
-    """Create the output folder and write all three files. Returns the folder path."""
+    """Create the output folder and write all files. Returns the folder path.
+
+    k8s_only=True skips mock_server.py / requirements.txt / QUICKSTART.md and only
+    writes (or overwrites) the Dockerfile and Helm chart. Use this when the server
+    files already exist and were hand-edited — k8s_only leaves them untouched.
+    """
     title    = spec.get("info", {}).get("title", "Mock API")
     dir_name = slugify(title)
     out_dir  = (Path(base_out) if base_out else Path(spec_path).parent) / dir_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    all_endpoints = extract_endpoints(spec)
-    if selected_endpoints:
-        selected_set = set()
-        for s in selected_endpoints:
-            if ":" in s:
-                m, p = s.split(":", 1)
-                selected_set.add(f"{m.upper()}:{p}")
-            else:
-                selected_set.add(s.upper())
-        mocked = [ep for ep in all_endpoints if f"{ep['method']}:{ep['path']}" in selected_set]
-    else:
-        mocked = all_endpoints
+    if not k8s_only:
+        all_endpoints = extract_endpoints(spec)
+        if selected_endpoints:
+            selected_set = set()
+            for s in selected_endpoints:
+                if ":" in s:
+                    m, p = s.split(":", 1)
+                    selected_set.add(f"{m.upper()}:{p}")
+                else:
+                    selected_set.add(s.upper())
+            mocked = [ep for ep in all_endpoints if f"{ep['method']}:{ep['path']}" in selected_set]
+        else:
+            mocked = all_endpoints
 
-    is_yaml = spec_path.endswith((".yaml", ".yml"))
+        is_yaml = spec_path.endswith((".yaml", ".yml"))
 
-    (out_dir / "mock_server.py").write_text(
-        generate_server_code(spec, selected_endpoints=selected_endpoints, port=port)
-    )
-    (out_dir / "requirements.txt").write_text(generate_requirements(is_yaml))
-    (out_dir / "QUICKSTART.md").write_text(
-        generate_quickstart(spec, mocked, port, str(out_dir), is_yaml)
-    )
+        (out_dir / "mock_server.py").write_text(
+            generate_server_code(spec, selected_endpoints=selected_endpoints, port=port,
+                                 data_config=data_config)
+        )
+        (out_dir / "requirements.txt").write_text(generate_requirements(is_yaml))
+        (out_dir / "QUICKSTART.md").write_text(
+            generate_quickstart(spec, mocked, port, str(out_dir), is_yaml)
+        )
+        # Save raw spec so the portal can serve it
+        (out_dir / "openapi.json").write_text(json.dumps(spec, indent=2))
+        # Register/update this mock in portal-config.json (sibling of spec or base_out)
+        _upsert_portal_config(spec, str(out_dir), dir_name, port,
+                              base_out if base_out else str(Path(spec_path).parent))
+
+    if k8s or k8s_only:
+        effective_ingress_path = ingress_path if ingress_path else f"/{dir_name}"
+        generate_dockerfile(str(out_dir), port)
+        generate_helm_chart(
+            spec=spec,
+            out_dir=str(out_dir),
+            port=port,
+            ingress_path=effective_ingress_path,
+            ingress_class=ingress_class,
+        )
+
     return str(out_dir)
 
 
@@ -1110,11 +1553,53 @@ def main():
         "--smoke-test", action="store_true",
         help="Generate the folder, start the server, probe every endpoint, report, then exit.",
     )
+    parser.add_argument(
+        "--k8s", action="store_true",
+        help="Also generate a Dockerfile and Helm chart (helm/<chart>/) for Kubernetes deployment.",
+    )
+    parser.add_argument(
+        "--k8s-only", action="store_true", dest="k8s_only",
+        help=(
+            "Generate ONLY the Dockerfile and Helm chart — skip mock_server.py, "
+            "requirements.txt, and QUICKSTART.md. Use when the server already exists "
+            "and was hand-edited; this leaves it untouched."
+        ),
+    )
+    parser.add_argument(
+        "--ingress-path", default=None,
+        help="Ingress path prefix for this mock (e.g. /meraki). Default: /<api-slug>.",
+    )
+    parser.add_argument(
+        "--ingress-class", default="nginx",
+        help="Kubernetes ingress class name (default: nginx).",
+    )
+    parser.add_argument(
+        "--data-config", default=None, metavar="PATH",
+        help=(
+            "Path to mock-data-config.yaml controlling response counts and field values. "
+            "Auto-detected from the generator directory if omitted."
+        ),
+    )
     args = parser.parse_args()
 
     if not Path(args.spec).exists():
         print(f"ERROR: spec file not found: {args.spec}")
         sys.exit(1)
+
+    # Auto-discover data config: explicit flag → generator dir → spec dir → cwd
+    data_config_path = args.data_config
+    if not data_config_path:
+        for candidate in [
+            Path(__file__).parent / "mock-data-config.yaml",
+            Path(args.spec).parent / "mock-data-config.yaml",
+            Path.cwd() / "mock-data-config.yaml",
+        ]:
+            if candidate.exists():
+                data_config_path = str(candidate)
+                print(f"Data config  : {data_config_path}")
+                break
+
+    data_config = load_data_config(data_config_path)
 
     spec    = load_spec(args.spec)
     out_dir = build_output_dir(
@@ -1123,12 +1608,27 @@ def main():
         selected_endpoints=args.endpoints,
         port=args.port,
         base_out=args.out_dir,
+        k8s=args.k8s,
+        k8s_only=args.k8s_only,
+        ingress_path=args.ingress_path,
+        ingress_class=args.ingress_class,
+        data_config=data_config,
     )
 
+    title    = spec.get("info", {}).get("title", "Mock API")
+    dir_name = slugify(title)
+    effective_ingress_path = args.ingress_path if args.ingress_path else f"/{dir_name}"
+
     print(f"Generated folder : {out_dir}/")
-    print(f"  mock_server.py   — Flask HTTP server")
-    print(f"  requirements.txt — pinned dependencies")
-    print(f"  QUICKSTART.md    — setup & usage guide")
+    if not args.k8s_only:
+        print(f"  mock_server.py   — Flask HTTP server")
+        print(f"  requirements.txt — pinned dependencies")
+        print(f"  QUICKSTART.md    — setup & usage guide")
+        print(f"  openapi.json     — spec saved for portal")
+    if args.k8s or args.k8s_only:
+        print(f"  Dockerfile       — container image build")
+        print(f"  helm/{dir_name}/  — Helm chart (ingress path: {effective_ingress_path})")
+    print(f"\nPortal: start mock_portal.py and open http://localhost:8888/swagger/{dir_name}")
 
     schemes = extract_auth_schemes(spec)
     if schemes:

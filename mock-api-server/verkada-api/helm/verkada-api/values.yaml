@@ -1,0 +1,38 @@
+# Default values for verkada-api mock server.
+# Override with: helm install verkada-api ./verkada-api -f custom-values.yaml
+
+replicaCount: 1
+
+image:
+  repository: verkada-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 9092
+  targetPort: 9092
+
+ingress:
+  enabled: true
+  className: "nginx"
+  # Prefix path for this mock on the shared cluster ingress.
+  # All requests to <host>/verkada/* are routed here and the
+  # prefix is stripped before reaching the Flask server.
+  path: "/verkada"
+  host: "mock.local"
+  tls: []
+  # tls:
+  #   - secretName: mock-tls
+  #     hosts:
+  #       - mock.local
+
+resources: {}
+# resources:
+#   limits:
+#     cpu: 200m
+#     memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
